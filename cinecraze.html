@@ -1355,16 +1355,173 @@
         }
     </style>
     
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+    
     <!-- GitHub Upload Script -->
     <script>
         // GitHub Upload Configuration
         const GITHUB_CONFIG = {
             owner: 'MovieAddict88',
             repo: 'Movie-Source',
-            branch: 'main',
-            path: 'playlist.json',
+            baseBranch: 'main',
+            branch: '',
+            rawPath: 'playlist.json',
+            zipPath: 'playlist.json.zip',
+            useZip: true,
+            minify: true,
             token: ''
         };
+
+        function getDefaultUploadBranch() {
+            const d = new Date();
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `upload-${y}-${m}-${day}`;
+        }
+
+        function loadGitHubSettings() {
+            try {
+                const saved = localStorage.getItem('github_config');
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    Object.assign(GITHUB_CONFIG, parsed);
+                }
+            } catch (e) {
+                console.warn('Failed to load github_config from localStorage', e);
+            }
+            if (!GITHUB_CONFIG.branch) {
+                GITHUB_CONFIG.branch = getDefaultUploadBranch();
+            }
+        }
+
+        function saveGitHubSettings() {
+            try {
+                localStorage.setItem('github_config', JSON.stringify(GITHUB_CONFIG));
+                showGitHubStatus('success', 'GitHub settings saved.');
+            } catch (e) {
+                showGitHubStatus('error', 'Failed to save GitHub settings.');
+            }
+        }
+
+        function updateGitHubConfigFromInputs() {
+            const ownerEl = document.getElementById('github-owner');
+            const repoEl = document.getElementById('github-repo');
+            const baseBranchEl = document.getElementById('github-base-branch');
+            const branchEl = document.getElementById('github-branch');
+            const rawPathEl = document.getElementById('github-raw-path');
+            const zipPathEl = document.getElementById('github-zip-path');
+            const useZipEl = document.getElementById('github-use-zip');
+            const minifyEl = document.getElementById('github-minify');
+
+            if (ownerEl) GITHUB_CONFIG.owner = ownerEl.value.trim() || GITHUB_CONFIG.owner;
+            if (repoEl) GITHUB_CONFIG.repo = repoEl.value.trim() || GITHUB_CONFIG.repo;
+            if (baseBranchEl) GITHUB_CONFIG.baseBranch = baseBranchEl.value.trim() || GITHUB_CONFIG.baseBranch;
+            if (branchEl) GITHUB_CONFIG.branch = branchEl.value.trim() || GITHUB_CONFIG.branch;
+            if (rawPathEl) GITHUB_CONFIG.rawPath = rawPathEl.value.trim() || 'playlist.json';
+            if (zipPathEl) GITHUB_CONFIG.zipPath = zipPathEl.value.trim() || 'playlist.json.zip';
+            if (useZipEl) GITHUB_CONFIG.useZip = !!useZipEl.checked;
+            if (minifyEl) GITHUB_CONFIG.minify = !!minifyEl.checked;
+        }
+
+        function updateGitHubFormFromConfig() {
+            const ownerEl = document.getElementById('github-owner');
+            const repoEl = document.getElementById('github-repo');
+            const baseBranchEl = document.getElementById('github-base-branch');
+            const branchEl = document.getElementById('github-branch');
+            const rawPathEl = document.getElementById('github-raw-path');
+            const zipPathEl = document.getElementById('github-zip-path');
+            const useZipEl = document.getElementById('github-use-zip');
+            const minifyEl = document.getElementById('github-minify');
+
+            if (ownerEl) ownerEl.value = GITHUB_CONFIG.owner;
+            if (repoEl) repoEl.value = GITHUB_CONFIG.repo;
+            if (baseBranchEl) baseBranchEl.value = GITHUB_CONFIG.baseBranch;
+            if (branchEl) branchEl.value = GITHUB_CONFIG.branch || getDefaultUploadBranch();
+            if (rawPathEl) rawPathEl.value = GITHUB_CONFIG.rawPath;
+            if (zipPathEl) zipPathEl.value = GITHUB_CONFIG.zipPath;
+            if (useZipEl) useZipEl.checked = !!GITHUB_CONFIG.useZip;
+            if (minifyEl) minifyEl.checked = !!GITHUB_CONFIG.minify;
+
+            const rawPathWrap = document.getElementById('github-raw-path-wrap');
+            if (rawPathWrap) rawPathWrap.style.display = GITHUB_CONFIG.useZip ? 'none' : 'block';
+            const zipPathWrap = document.getElementById('github-zip-path-wrap');
+            if (zipPathWrap) zipPathWrap.style.display = GITHUB_CONFIG.useZip ? 'block' : 'none';
+        }
+
+        async function ensureBranchExists(targetBranch, baseBranch) {
+            const refUrl = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/git/ref/heads/${encodeURIComponent(targetBranch)}`;
+            const headers = {
+                'Authorization': `token ${GITHUB_CONFIG.token}`,
+                'Accept': 'application/vnd.github.v3+json'
+            };
+            const resp = await fetch(refUrl, { headers });
+            if (resp.ok) {
+                return true;
+            }
+            if (resp.status !== 404) {
+                const err = await resp.json().catch(() => ({ message: 'Unknown error' }));
+                throw new Error(`Cannot check branch: ${err.message || resp.statusText}`);
+            }
+            const baseUrl = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/git/ref/heads/${encodeURIComponent(baseBranch)}`;
+            const baseResp = await fetch(baseUrl, { headers });
+            if (!baseResp.ok) {
+                const err = await baseResp.json().catch(() => ({ message: 'Unknown base branch' }));
+                throw new Error(`Cannot read base branch '${baseBranch}': ${err.message || baseResp.statusText}`);
+            }
+            const baseData = await baseResp.json();
+            const createRefUrl = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/git/refs`;
+            const createResp = await fetch(createRefUrl, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `token ${GITHUB_CONFIG.token}`,
+                    'Accept': 'application/vnd.github.v3+json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ ref: `refs/heads/${targetBranch}`, sha: baseData.object.sha })
+            });
+            if (!createResp.ok) {
+                const err = await createResp.json().catch(() => ({ message: 'Unknown error creating branch' }));
+                throw new Error(`Branch create failed: ${err.message || createResp.statusText}`);
+            }
+            return true;
+        }
+
+        async function getFileShaIfExists(path, branch) {
+            const url = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${encodeURIComponent(path)}?ref=${encodeURIComponent(branch)}`;
+            const resp = await fetch(url, {
+                headers: {
+                    'Authorization': `token ${GITHUB_CONFIG.token}`,
+                    'Accept': 'application/vnd.github.v3+json'
+                }
+            });
+            if (resp.ok) {
+                const info = await resp.json();
+                return info.sha || null;
+            }
+            if (resp.status === 404) return null;
+            const err = await resp.json().catch(() => ({ message: 'Unknown error' }));
+            throw new Error(`Cannot check file: ${err.message || resp.statusText}`);
+        }
+
+        async function testRepoAccess() {
+            updateGitHubConfigFromInputs();
+            if (!GITHUB_CONFIG.token) {
+                showGitHubStatus('error', 'Please set your GitHub token first.');
+                return;
+            }
+            try {
+                const url = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}`;
+                const resp = await fetch(url, { headers: { 'Authorization': `token ${GITHUB_CONFIG.token}`, 'Accept': 'application/vnd.github.v3+json' } });
+                if (!resp.ok) {
+                    const err = await resp.json().catch(() => ({ message: 'Unknown error' }));
+                    showGitHubStatus('error', `Repo access failed: ${err.message || resp.statusText}`);
+                    return;
+                }
+                showGitHubStatus('success', 'Repo access OK. Contents: write required for upload.');
+            } catch (e) {
+                showGitHubStatus('error', `Repo access error: ${e.message}`);
+            }
 
         // Function to upload JSON to GitHub
         async function uploadToGitHub(jsonData, filename = 'playlist.json') {
@@ -1388,19 +1545,17 @@
                     progressText.textContent = 'Initializing upload...';
                 }
 
+                updateGitHubConfigFromInputs();
                 showGitHubStatus('info', 'Initializing GitHub upload...');
-                updateProgress(10, 'Checking repository...');
+                updateProgress(8, 'Ensuring branch exists...');
+                const targetBranch = GITHUB_CONFIG.branch || getDefaultUploadBranch();
+                await ensureBranchExists(targetBranch, GITHUB_CONFIG.baseBranch || 'main');
 
-                // First, check if file exists to get its SHA
-                const checkUrl = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${filename}`;
-                const checkResponse = await fetch(checkUrl, {
-                    headers: {
-                        'Authorization': `token ${GITHUB_CONFIG.token}`,
-                        'Accept': 'application/vnd.github.v3+json'
-                    }
-                });
+                const targetPath = (GITHUB_CONFIG.useZip ? (GITHUB_CONFIG.zipPath || 'playlist.json.zip') : (filename || GITHUB_CONFIG.rawPath || 'playlist.json'));
+                const checkUrl = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${encodeURIComponent(targetPath)}?ref=${encodeURIComponent(targetBranch)}`;
+                const checkResponse = await fetch(checkUrl, { headers: { 'Authorization': `token ${GITHUB_CONFIG.token}`, 'Accept': 'application/vnd.github.v3+json' } });
 
-                updateProgress(30, 'Preparing upload data...');
+                updateProgress(20, 'Preparing upload data...');
 
                 let sha = null;
                 if (checkResponse.ok) {
@@ -1411,7 +1566,7 @@
                     console.log('📄 New file will be created');
                 }
 
-                updateProgress(50, 'Encoding data...');
+                updateProgress(35, GITHUB_CONFIG.useZip ? 'Zipping data...' : 'Encoding data...');
 
                 // Debug: Check the data before encoding
                 console.log('🔍 Data being uploaded (size):', jsonData.length, 'characters');
@@ -1419,17 +1574,33 @@
                 console.log('🔍 Data contains Categories:', jsonData.includes('"Categories"'));
                 console.log('🔍 Data contains Movies:', jsonData.includes('"Movies"'));
                 
-                // Prepare the upload data
-                const content = btoa(unescape(encodeURIComponent(jsonData)));
-                const dataSizeMB = (jsonData.length / 1024 / 1024).toFixed(2);
+                let contentBase64 = '';
+                let dataSizeMB = (jsonData.length / 1024 / 1024).toFixed(2);
+                if (GITHUB_CONFIG.useZip) {
+                    const zip = new JSZip();
+                    zip.file('playlist.json', jsonData);
+                    const base64Zip = await zip.generateAsync(
+                        { type: 'base64', compression: 'DEFLATE', compressionOptions: { level: 9 } },
+                        (metadata) => {
+                            const pct = Math.min(60, 35 + Math.floor(metadata.percent * 0.25));
+                            updateProgress(pct, `Zipping (${metadata.percent.toFixed(0)}%)...`);
+                        }
+                    );
+                    contentBase64 = base64Zip;
+                    const zipBytes = Math.floor((base64Zip.length * 3) / 4);
+                    dataSizeMB = (zipBytes / 1024 / 1024).toFixed(2);
+                    console.log('🗜️ Zipped size (MB):', dataSizeMB);
+                } else {
+                    contentBase64 = btoa(unescape(encodeURIComponent(jsonData)));
+                }
                 
-                console.log('🔍 Encoded content length:', content.length);
+                console.log('🔍 Encoded content length:', contentBase64.length);
                 console.log('🔍 Data size in MB:', dataSizeMB);
                 
                 const uploadData = {
-                    message: `Update ${filename} - ${new Date().toISOString().split('T')[0]} (${dataSizeMB}MB)`,
-                    content: content,
-                    branch: GITHUB_CONFIG.branch
+                    message: `${GITHUB_CONFIG.useZip ? 'Upload zipped' : 'Update'} ${GITHUB_CONFIG.useZip ? (GITHUB_CONFIG.zipPath || 'playlist.json.zip') : (filename || 'playlist.json')} - ${new Date().toISOString().split('T')[0]} (${dataSizeMB}MB)${GITHUB_CONFIG.minify ? ' [minified]' : ''}`,
+                    content: contentBase64,
+                    branch: targetBranch
                 };
 
                 if (sha) {
@@ -1439,7 +1610,7 @@
                 updateProgress(70, 'Uploading to GitHub...');
 
                 // Upload the file
-                const uploadUrl = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${filename}`;
+                const uploadUrl = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${encodeURIComponent(targetPath)}`;
                 const uploadResponse = await fetch(uploadUrl, {
                     method: 'PUT',
                     headers: {
@@ -1459,7 +1630,7 @@
                     showGitHubStatus('success', `✅ Successfully uploaded to GitHub! File: ${result.content.name} (${dataSizeMB}MB)`);
                     
                     // Show the GitHub URL
-                    const fileUrl = `https://github.com/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/blob/${GITHUB_CONFIG.branch}/${filename}`;
+                    const fileUrl = `https://github.com/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/blob/${targetBranch}/${targetPath}`;
                     setTimeout(() => {
                         showGitHubStatus('info', `🔗 View file: ${fileUrl}`);
                     }, 2000);
@@ -1525,7 +1696,7 @@
                 
                 // Use current data directly instead of save/reload cycle
                 // This prevents uploading compressed/empty data
-                const dataStr = JSON.stringify(currentData, null, 2);
+                const dataStr = GITHUB_CONFIG.minify ? JSON.stringify(currentData) : JSON.stringify(currentData, null, 2);
                 const dataSizeMB = (dataStr.length / 1024 / 1024).toFixed(2);
                 
                 console.log(`📤 Uploading ${dataSizeMB}MB of current data to GitHub`);
@@ -1614,12 +1785,14 @@
             }, 8000);
         }
 
-        // Load token from localStorage on page load
+        // Load token and settings from localStorage on page load
         window.addEventListener('load', function() {
             const savedToken = localStorage.getItem('github_token');
             if (savedToken) {
                 GITHUB_CONFIG.token = savedToken;
             }
+            loadGitHubSettings();
+            updateGitHubFormFromConfig();
         });
     </script>
 </head>
@@ -2099,9 +2272,46 @@
                                 <small class="form-text">Get your token from <a href="https://github.com/settings/tokens" target="_blank">GitHub Settings</a></small>
                             </div>
                             <div class="form-group">
+                                <label for="github-owner">Owner</label>
+                                <input type="text" id="github-owner" class="form-control" placeholder="e.g., MovieAddict88">
+                            </div>
+                            <div class="form-group">
+                                <label for="github-repo">Repository</label>
+                                <input type="text" id="github-repo" class="form-control" placeholder="e.g., Movie-Source">
+                            </div>
+                            <div class="form-group">
+                                <label for="github-base-branch">Base Branch (for new branch)</label>
+                                <input type="text" id="github-base-branch" class="form-control" placeholder="e.g., main">
+                            </div>
+                            <div class="form-group">
+                                <label for="github-branch">Target Branch (will be created if missing)</label>
+                                <input type="text" id="github-branch" class="form-control" placeholder="e.g., upload-YYYY-MM-DD">
+                                <small class="form-text">Use a name starting with <strong>upload-</strong> to trigger the unzip workflow.</small>
+                            </div>
+                            <div class="form-group">
+                                <label>
+                                    <input type="checkbox" id="github-use-zip" onchange="updateGitHubConfigFromInputs(); updateGitHubFormFromConfig();"> Upload as ZIP (playlist.json.zip)
+                                </label>
+                            </div>
+                            <div class="form-group">
+                                <label>
+                                    <input type="checkbox" id="github-minify" onchange="updateGitHubConfigFromInputs();"> Minify JSON before upload
+                                </label>
+                            </div>
+                            <div class="form-group" id="github-raw-path-wrap" style="display:none;">
+                                <label for="github-raw-path">File Path</label>
+                                <input type="text" id="github-raw-path" class="form-control" placeholder="playlist.json">
+                            </div>
+                            <div class="form-group" id="github-zip-path-wrap" style="display:none;">
+                                <label for="github-zip-path">ZIP File Path</label>
+                                <input type="text" id="github-zip-path" class="form-control" placeholder="playlist.json.zip">
+                            </div>
+                            <div class="form-group">
                                 <button class="btn btn-success" onclick="setGitHubToken()">🔑 Set Token</button>
                                 <button class="btn btn-info" onclick="checkGitHubToken()">🔍 Check Token</button>
                                 <button class="btn btn-secondary" onclick="debugCurrentData()">🔍 Debug Data</button>
+                                <button class="btn btn-secondary" onclick="updateGitHubConfigFromInputs(); saveGitHubSettings();">💾 Save Settings</button>
+                                <button class="btn btn-warning" onclick="testRepoAccess()">🧪 Test Repo Access</button>
                                 <button class="btn btn-accent" onclick="exportToGitHub()">📤 Upload to GitHub</button>
                             </div>
                             

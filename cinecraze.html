@@ -10,6 +10,14 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <title>Playlist Categories Manager</title>
+    <meta name="description" content="Manage playlists categories with Movies, TV Series, and Live TV.">
+    <meta name="robots" content="index,follow">
+    <meta name="color-scheme" content="dark light">
+    <meta property="og:title" content="Playlist Categories Manager">
+    <meta property="og:description" content="Manage content with Movies, TV Series, and Live TV.">
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="https://via.placeholder.com/1200x630.png?text=Playlist+Categories+Manager">
+    <meta name="twitter:card" content="summary_large_image">
     <style>
         :root {
             --primary: #e50914;
@@ -350,6 +358,10 @@
         
         .tab-content.active {
             display: block;
+        }
+        
+        [hidden] {
+            display: none !important;
         }
         
         @keyframes fadeIn {
@@ -2096,7 +2108,7 @@
                             <div class="form-group">
                                 <label for="github-token">GitHub Personal Access Token:</label>
                                 <input type="password" id="github-token" placeholder="Enter your GitHub token" class="form-control">
-                                <small class="form-text">Get your token from <a href="https://github.com/settings/tokens" target="_blank">GitHub Settings</a></small>
+                                <small class="form-text">Get your token from <a href="https://github.com/settings/tokens" target="_blank" rel="noopener noreferrer">GitHub Settings</a></small>
                             </div>
                             <div class="form-group">
                                 <button class="btn btn-success" onclick="setGitHubToken()">🔑 Set Token</button>
@@ -3380,7 +3392,7 @@ const TWOTWOEMBED_BASE = 'https://2embed.cc/embed';
                 const poster = item.poster_path ? `${TMDB_IMAGE_BASE}${item.poster_path}` : 'https://via.placeholder.com/300x450?text=No+Image';
 
                 div.innerHTML = `
-                    <img src="${poster}" alt="${title}" loading="lazy">
+                    <img src="${poster}" alt="${title}" loading="lazy" decoding="async" fetchpriority="low" width="300" height="450">
                     <div class="info">
                         <div class="title">${title}</div>
                         <div class="meta">${year} • ${mediaType === 'movie' ? '🎬' : '📺'} ${mediaType.toUpperCase()} • ID: ${item.id}</div>
@@ -5645,7 +5657,7 @@ Proceed with removal?`;
                 
                 div.innerHTML = `
                     <img src="${item.image || 'https://via.placeholder.com/300x450?text=No+Image'}" 
-                         alt="${item.title}" loading="lazy">
+                         alt="${item.title}" loading="lazy" decoding="async" fetchpriority="low" width="300" height="450">
                     <div class="info">
                         <div class="title">${item.title}</div>
                         <div class="meta">${item.year || 'Unknown'} • ${item.type?.toUpperCase()} • Rating: ${item.rating || 'N/A'}</div>

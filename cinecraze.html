@@ -1377,7 +1377,7 @@
         // GitHub Upload Configuration
         const GITHUB_CONFIG = {
             owner: 'MovieAddict88',
-            repo: 'Movie-Source',
+            repo: 'Movie-Source', // Target repository for uploads
             baseBranch: 'main',
             branch: '',
             rawPath: 'playlist.json',
@@ -1397,7 +1397,9 @@
             const y = d.getFullYear();
             const m = String(d.getMonth() + 1).padStart(2, '0');
             const day = String(d.getDate()).padStart(2, '0');
-            return `upload-${y}-${m}-${day}`;
+            const hour = String(d.getHours()).padStart(2, '0');
+            const minute = String(d.getMinutes()).padStart(2, '0');
+            return `upload-${y}-${m}-${day}-${hour}${minute}`;
         }
 
         function loadGitHubSettings() {
@@ -1775,6 +1777,14 @@
                         showGitHubStatus('info', `🔗 View file: ${fileUrl}`);
                     }, 3000);
                     
+                    // Show workflow status if zip was uploaded
+                    if (GITHUB_CONFIG.useZip) {
+                        const workflowUrl = `https://github.com/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/actions`;
+                        setTimeout(() => {
+                            showGitHubStatus('info', `⚙️ Check workflow: ${workflowUrl}`);
+                        }, 4000);
+                    }
+                    
                     // Hide progress bar after success
                     setTimeout(() => {
                         if (progressBar) progressBar.style.display = 'none';
@@ -2016,6 +2026,13 @@
             }
         }
 
+        // Function to open workflow status
+        function openWorkflowStatus() {
+            const workflowUrl = `https://github.com/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/actions`;
+            window.open(workflowUrl, '_blank');
+            showGitHubStatus('info', 'Opening workflow status in new tab...');
+        }
+
         // Function to show GitHub status messages
         function showGitHubStatus(type, message) {
             const statusDiv = document.getElementById('github-status');
@@ -2042,23 +2059,37 @@
 
 1. **Setup Required:**
    - Set your GitHub Personal Access Token
-   - Configure repository owner and name
-   - Choose upload branch
+   - Repository: MovieAddict88/Movie-Source
+   - Token needs 'repo' scope permissions
 
-2. **Large Data Handling:**
+2. **Upload Workflow:**
+   - Files upload to 'upload-*' branches
+   - ZIP files trigger automatic unzipping workflow
+   - Workflow extracts playlist.json from playlist.json.zip
+   - Results are committed back to the same branch
+
+3. **Large Data Handling:**
    - Enable "Use Zip" for files >10MB
    - Zip compression reduces file size significantly
    - GitHub limit: 100MB per file
+   - ZIP files are automatically processed by workflow
 
-3. **Troubleshooting:**
+4. **Branch Naming:**
+   - Use 'upload-YYYY-MM-DD-HHMM' format
+   - Branches starting with 'upload-' trigger workflow
+   - Each upload creates a new branch for version control
+
+5. **Troubleshooting:**
    - Test repository access first
    - Check token permissions (repo scope needed)
    - Use debug functions for detailed info
+   - Monitor workflow runs in Movie-Source repository
 
-4. **Best Practices:**
-   - Use descriptive branch names
+6. **Best Practices:**
+   - Use descriptive branch names with timestamps
    - Enable minification for smaller files
    - Test with small data first
+   - Check workflow status after upload
             `;
             
             console.log(helpText);
@@ -2567,11 +2598,11 @@
                             </div>
                             <div class="form-group">
                                 <label for="github-owner">Owner</label>
-                                <input type="text" id="github-owner" class="form-control" placeholder="e.g., MovieAddict88">
+                                <input type="text" id="github-owner" class="form-control" placeholder="e.g., MovieAddict88" value="MovieAddict88">
                             </div>
                             <div class="form-group">
                                 <label for="github-repo">Repository</label>
-                                <input type="text" id="github-repo" class="form-control" placeholder="e.g., Movie-Source">
+                                <input type="text" id="github-repo" class="form-control" placeholder="e.g., Movie-Source" value="Movie-Source">
                             </div>
                             <div class="form-group">
                                 <label for="github-base-branch">Base Branch (for new branch)</label>
@@ -2579,8 +2610,8 @@
                             </div>
                             <div class="form-group">
                                 <label for="github-branch">Target Branch (will be created if missing)</label>
-                                <input type="text" id="github-branch" class="form-control" placeholder="e.g., upload-YYYY-MM-DD">
-                                <small class="form-text">Use a name starting with <strong>upload-</strong> to trigger the unzip workflow.</small>
+                                <input type="text" id="github-branch" class="form-control" placeholder="e.g., upload-YYYY-MM-DD-HHMM">
+                                <small class="form-text">Use a name starting with <strong>upload-</strong> to trigger the unzip workflow. Format: upload-YYYY-MM-DD-HHMM</small>
                             </div>
                             <div class="form-group">
                                 <label>
@@ -2612,6 +2643,7 @@
                             </div>
                             <div class="form-group">
                                 <button class="btn btn-secondary btn-small" onclick="showGitHubHelp()">❓ Help</button>
+                                <button class="btn btn-secondary btn-small" onclick="openWorkflowStatus()">⚙️ Workflow Status</button>
                             </div>
                             
                             <!-- GitHub Upload Progress -->

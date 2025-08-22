@@ -1429,7 +1429,10 @@
             zipPath: 'playlist.json.zip',
             useZip: true,
             minify: true,
-            token: ''
+            token: '',
+            directToMain: false, // NEW: Option to upload directly to main branch
+            createPR: true, // NEW: Option to create pull request after upload
+            autoMerge: false // NEW: Option to auto-merge PR (requires admin permissions)
         };
 
         // Function to show GitHub status messages (moved to top to avoid dependency issues)
@@ -1506,6 +1509,8 @@
             const zipPathEl = document.getElementById('github-zip-path');
             const useZipEl = document.getElementById('github-use-zip');
             const minifyEl = document.getElementById('github-minify');
+            const createPREl = document.getElementById('github-create-pr');
+            const autoMergeEl = document.getElementById('github-auto-merge');
 
             if (ownerEl) GITHUB_CONFIG.owner = ownerEl.value.trim() || GITHUB_CONFIG.owner;
             if (repoEl) GITHUB_CONFIG.repo = repoEl.value.trim() || GITHUB_CONFIG.repo;
@@ -1515,6 +1520,12 @@
             if (zipPathEl) GITHUB_CONFIG.zipPath = zipPathEl.value.trim() || 'playlist.json.zip';
             if (useZipEl) GITHUB_CONFIG.useZip = !!useZipEl.checked;
             if (minifyEl) GITHUB_CONFIG.minify = !!minifyEl.checked;
+            if (createPREl) GITHUB_CONFIG.createPR = !!createPREl.checked;
+            if (autoMergeEl) GITHUB_CONFIG.autoMerge = !!autoMergeEl.checked;
+            
+            // Update directToMain based on radio button
+            const uploadMethod = document.querySelector('input[name="upload-method"]:checked')?.value;
+            GITHUB_CONFIG.directToMain = uploadMethod === 'direct';
         }
 
         function updateGitHubFormFromConfig() {
@@ -1526,6 +1537,8 @@
             const zipPathEl = document.getElementById('github-zip-path');
             const useZipEl = document.getElementById('github-use-zip');
             const minifyEl = document.getElementById('github-minify');
+            const createPREl = document.getElementById('github-create-pr');
+            const autoMergeEl = document.getElementById('github-auto-merge');
 
             if (ownerEl) ownerEl.value = GITHUB_CONFIG.owner;
             if (repoEl) repoEl.value = GITHUB_CONFIG.repo;
@@ -1535,11 +1548,43 @@
             if (zipPathEl) zipPathEl.value = GITHUB_CONFIG.zipPath;
             if (useZipEl) useZipEl.checked = !!GITHUB_CONFIG.useZip;
             if (minifyEl) minifyEl.checked = !!GITHUB_CONFIG.minify;
+            if (createPREl) createPREl.checked = !!GITHUB_CONFIG.createPR;
+            if (autoMergeEl) autoMergeEl.checked = !!GITHUB_CONFIG.autoMerge;
+
+            // Update radio buttons
+            const uploadMethod = GITHUB_CONFIG.directToMain ? 'direct' : 'branch';
+            const radioButton = document.querySelector(`input[name="upload-method"][value="${uploadMethod}"]`);
+            if (radioButton) radioButton.checked = true;
 
             const rawPathWrap = document.getElementById('github-raw-path-wrap');
             if (rawPathWrap) rawPathWrap.style.display = GITHUB_CONFIG.useZip ? 'none' : 'block';
             const zipPathWrap = document.getElementById('github-zip-path-wrap');
             if (zipPathWrap) zipPathWrap.style.display = GITHUB_CONFIG.useZip ? 'block' : 'none';
+            
+            // Show/hide branch options based on upload method
+            updateUploadMethodUI();
+        }
+
+        // Handle upload method changes
+        function updateUploadMethod() {
+            updateGitHubConfigFromInputs();
+            updateUploadMethodUI();
+        }
+
+        function updateUploadMethodUI() {
+            const branchOptions = document.getElementById('branch-upload-options');
+            const directToMain = GITHUB_CONFIG.directToMain;
+            
+            if (branchOptions) {
+                branchOptions.style.display = directToMain ? 'none' : 'block';
+            }
+            
+            // Update help text based on method
+            const methodInfo = directToMain ? 
+                'Direct upload will immediately update the main branch' : 
+                'Branch upload will create a temporary branch and optionally create a pull request';
+                
+            console.log(`📋 Upload method: ${directToMain ? 'Direct to Main' : 'Branch + PR'} - ${methodInfo}`);
         }
 
         async function ensureBranchExists(targetBranch, baseBranch) {
@@ -1850,19 +1895,73 @@
                         showGitHubStatus('info', `🔗 View file: ${fileUrl}`);
                     }, 3000);
                     
+                    // Post-upload workflow: Create PR or show next steps
+                    if (targetBranch !== GITHUB_CONFIG.baseBranch && GITHUB_CONFIG.createPR) {
+                        setTimeout(async () => {
+                            try {
+                                showGitHubStatus('info', '🔄 Creating pull request to merge changes...');
+                                const pr = await createPullRequest(targetBranch, GITHUB_CONFIG.baseBranch);
+                                
+                                showGitHubStatus('success', `✅ Pull request created! #${pr.number}`);
+                                
+                                setTimeout(() => {
+                                    showGitHubStatus('info', `🔗 Review PR: ${pr.html_url}`);
+                                }, 2000);
+                                
+                                // Auto-merge if enabled and user has permissions
+                                if (GITHUB_CONFIG.autoMerge) {
+                                    setTimeout(async () => {
+                                        try {
+                                            showGitHubStatus('info', '🤖 Auto-merging pull request...');
+                                            await mergePullRequest(pr.number);
+                                            showGitHubStatus('success', '✅ Pull request auto-merged! Changes are now live on main branch.');
+                                            
+                                            // Show final file URL on main branch
+                                            const mainFileUrl = `https://github.com/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/blob/${GITHUB_CONFIG.baseBranch}/${targetPath}`;
+                                            setTimeout(() => {
+                                                showGitHubStatus('info', `🎉 Live file: ${mainFileUrl}`);
+                                            }, 2000);
+                                            
+                                        } catch (mergeError) {
+                                            showGitHubStatus('warning', `⚠️ Auto-merge failed: ${mergeError.message}. Please merge manually.`);
+                                        }
+                                    }, 3000);
+                                }
+                                
+                            } catch (prError) {
+                                showGitHubStatus('warning', `⚠️ Could not create PR: ${prError.message}. File uploaded to branch: ${targetBranch}`);
+                                
+                                // Show manual steps
+                                setTimeout(() => {
+                                    showGitHubStatus('info', `📋 Next steps: 1) Go to your repo 2) Create PR from ${targetBranch} to ${GITHUB_CONFIG.baseBranch} 3) Merge the PR`);
+                                }, 3000);
+                            }
+                        }, 2000);
+                    } else if (targetBranch === GITHUB_CONFIG.baseBranch) {
+                        // Already uploaded to main branch
+                        setTimeout(() => {
+                            showGitHubStatus('success', '🎉 File is now live on the main branch!');
+                        }, 2000);
+                    } else {
+                        // Show manual steps for branch-based upload
+                        setTimeout(() => {
+                            showGitHubStatus('info', `📋 Next steps: Create a PR from ${targetBranch} to ${GITHUB_CONFIG.baseBranch} to make changes live`);
+                        }, 3000);
+                    }
+                    
                     // Show workflow status if zip was uploaded
                     if (GITHUB_CONFIG.useZip) {
                         const workflowUrl = `https://github.com/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/actions`;
                         setTimeout(() => {
                             showGitHubStatus('info', `⚙️ Check workflow: ${workflowUrl}`);
-                        }, 4000);
+                        }, 6000);
                     }
                     
                     // Hide progress bar after success
                     setTimeout(() => {
                         if (progressBar) progressBar.style.display = 'none';
                         if (progressText) progressText.style.display = 'none';
-                    }, 5000);
+                    }, 8000);
                     
                 } else {
                     let errorMessage = 'Unknown error';
@@ -2201,6 +2300,108 @@
                showStatus('info', 'Completed operations cleared from dashboard');
            }
 
+           // Quick action functions for GitHub workflow
+           async function quickUploadToMain() {
+               try {
+                   if (!currentData || !currentData.Categories) {
+                       showGitHubStatus('error', 'No data to upload! Please load or create some content first.');
+                       return;
+                   }
+
+                   // Temporarily set direct upload
+                   const originalDirectToMain = GITHUB_CONFIG.directToMain;
+                   GITHUB_CONFIG.directToMain = true;
+                   
+                   showGitHubStatus('info', '🎯 Quick upload to main branch starting...');
+                   await exportToGitHub();
+                   
+                   // Restore original setting
+                   GITHUB_CONFIG.directToMain = originalDirectToMain;
+                   
+               } catch (error) {
+                   showGitHubStatus('error', `Quick upload failed: ${error.message}`);
+               }
+           }
+
+           async function uploadWithPR() {
+               try {
+                   if (!currentData || !currentData.Categories) {
+                       showGitHubStatus('error', 'No data to upload! Please load or create some content first.');
+                       return;
+                   }
+
+                   // Ensure PR creation is enabled
+                   const originalCreatePR = GITHUB_CONFIG.createPR;
+                   const originalDirectToMain = GITHUB_CONFIG.directToMain;
+                   
+                   GITHUB_CONFIG.createPR = true;
+                   GITHUB_CONFIG.directToMain = false;
+                   
+                   showGitHubStatus('info', '🌿 Upload with PR creation starting...');
+                   await exportToGitHub();
+                   
+                   // Restore original settings
+                   GITHUB_CONFIG.createPR = originalCreatePR;
+                   GITHUB_CONFIG.directToMain = originalDirectToMain;
+                   
+               } catch (error) {
+                   showGitHubStatus('error', `Upload with PR failed: ${error.message}`);
+               }
+           }
+
+           async function checkCurrentBranches() {
+               try {
+                   updateGitHubConfigFromInputs();
+                   
+                   if (!GITHUB_CONFIG.token) {
+                       showGitHubStatus('error', 'Please set your GitHub token first.');
+                       return;
+                   }
+
+                   showGitHubStatus('info', 'Checking repository branches...');
+                   
+                   const branchesUrl = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/branches`;
+                   const response = await fetch(branchesUrl, {
+                       headers: {
+                           'Authorization': `token ${GITHUB_CONFIG.token}`,
+                           'Accept': 'application/vnd.github.v3+json'
+                       }
+                   });
+
+                   if (response.ok) {
+                       const branches = await response.json();
+                       const branchNames = branches.map(b => b.name);
+                       const uploadBranches = branchNames.filter(name => name.startsWith('upload-'));
+                       
+                       console.log('📋 All branches:', branchNames);
+                       console.log('📤 Upload branches:', uploadBranches);
+                       
+                       let message = `Found ${branches.length} branches. `;
+                       if (uploadBranches.length > 0) {
+                           message += `${uploadBranches.length} upload branches: ${uploadBranches.slice(0, 3).join(', ')}${uploadBranches.length > 3 ? '...' : ''}`;
+                       } else {
+                           message += 'No upload branches found.';
+                       }
+                       
+                       showGitHubStatus('success', message);
+                       
+                       // Show pending PRs if any upload branches exist
+                       if (uploadBranches.length > 0) {
+                           setTimeout(() => {
+                               showGitHubStatus('info', `💡 Tip: Check for pending PRs at https://github.com/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/pulls`);
+                           }, 3000);
+                       }
+                       
+                   } else {
+                       const error = await response.json().catch(() => ({ message: 'Unknown error' }));
+                       showGitHubStatus('error', `Failed to check branches: ${error.message}`);
+                   }
+                   
+               } catch (error) {
+                   showGitHubStatus('error', `Error checking branches: ${error.message}`);
+               }
+           }
+
            // Global error boundary system
            window.addEventListener('error', function(event) {
                console.error('🚨 Global JavaScript Error:', event.error);
@@ -2395,7 +2596,14 @@
                     // Continue with upload even if local save fails
                 }
                 
-                await uploadToGitHub(dataStr, 'playlist.json');
+                // Choose upload method based on configuration
+                if (GITHUB_CONFIG.directToMain) {
+                    showGitHubStatus('info', '🎯 Using direct upload to main branch...');
+                    await uploadDirectlyToMain(dataStr, 'playlist.json');
+                } else {
+                    showGitHubStatus('info', '🌿 Using branch-based upload with PR workflow...');
+                    await uploadToGitHub(dataStr, 'playlist.json');
+                }
                 OperationManager.finish(operationId, true, 'Export completed successfully');
                 
             } catch (error) {
@@ -2538,6 +2746,163 @@
             showGitHubStatus('info', 'Opening workflow status in new tab...');
         }
 
+        // Create pull request to merge upload branch to main
+        async function createPullRequest(sourceBranch, targetBranch = 'main', title, body) {
+            try {
+                const prData = {
+                    title: title || `Update playlist.json - ${new Date().toISOString().split('T')[0]}`,
+                    body: body || `Automated update of playlist.json from CineCraze application.\n\n**Upload Details:**\n- Branch: ${sourceBranch}\n- Target: ${targetBranch}\n- Timestamp: ${new Date().toISOString()}\n- Data size: ${(JSON.stringify(currentData).length / 1024 / 1024).toFixed(2)}MB\n\n**Content Summary:**\n- Movies: ${currentData.Categories.find(c => c.MainCategory === 'Movies')?.Entries.length || 0}\n- TV Series: ${currentData.Categories.find(c => c.MainCategory === 'TV Series')?.Entries.length || 0}\n- Live TV: ${currentData.Categories.find(c => c.MainCategory === 'Live TV')?.Entries.length || 0}`,
+                    head: sourceBranch,
+                    base: targetBranch
+                };
+
+                const response = await fetch(`https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/pulls`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `token ${GITHUB_CONFIG.token}`,
+                        'Accept': 'application/vnd.github.v3+json',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(prData)
+                });
+
+                if (response.ok) {
+                    const pr = await response.json();
+                    console.log('✅ Pull request created:', pr.html_url);
+                    return pr;
+                } else {
+                    const error = await response.json().catch(() => ({ message: 'Unknown error' }));
+                    throw new Error(`Failed to create PR: ${error.message || response.statusText}`);
+                }
+            } catch (error) {
+                console.error('❌ Error creating pull request:', error);
+                throw error;
+            }
+        }
+
+        // Auto-merge pull request (requires admin permissions)
+        async function mergePullRequest(prNumber) {
+            try {
+                const mergeData = {
+                    commit_title: `Update playlist.json`,
+                    commit_message: `Auto-merge playlist.json update from CineCraze application`,
+                    merge_method: 'squash'
+                };
+
+                const response = await fetch(`https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/pulls/${prNumber}/merge`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `token ${GITHUB_CONFIG.token}`,
+                        'Accept': 'application/vnd.github.v3+json',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(mergeData)
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log('✅ Pull request merged:', result);
+                    return result;
+                } else {
+                    const error = await response.json().catch(() => ({ message: 'Unknown error' }));
+                    throw new Error(`Failed to merge PR: ${error.message || response.statusText}`);
+                }
+            } catch (error) {
+                console.error('❌ Error merging pull request:', error);
+                throw error;
+            }
+        }
+
+        // Upload directly to main branch (alternative approach)
+        async function uploadDirectlyToMain(jsonData, filename = 'playlist.json') {
+            try {
+                showGitHubStatus('info', 'Uploading directly to main branch...');
+                updateProgress(10, 'Checking main branch...');
+
+                const targetPath = GITHUB_CONFIG.useZip ? 
+                    (GITHUB_CONFIG.zipPath || 'playlist.json.zip') : 
+                    (filename || GITHUB_CONFIG.rawPath || 'playlist.json');
+
+                // Get current file SHA if it exists
+                const sha = await getFileShaIfExists(targetPath, GITHUB_CONFIG.baseBranch);
+                
+                updateProgress(30, 'Preparing data for direct upload...');
+
+                // Prepare the data (same as regular upload)
+                let contentBase64 = '';
+                let dataSizeMB = (jsonData.length / 1024 / 1024).toFixed(2);
+                
+                if (GITHUB_CONFIG.useZip) {
+                    if (!isJSZipAvailable()) {
+                        throw new Error('JSZip not available for compression');
+                    }
+                    
+                    updateProgress(40, 'Creating zip file...');
+                    const zip = new JSZip();
+                    zip.file('playlist.json', jsonData);
+                    
+                    updateProgress(50, 'Compressing data...');
+                    contentBase64 = await zip.generateAsync({ type: 'base64' });
+                    const zipBytes = Math.floor((contentBase64.length * 3) / 4);
+                    dataSizeMB = (zipBytes / 1024 / 1024).toFixed(2);
+                } else {
+                    updateProgress(40, 'Encoding data to base64...');
+                    const encoder = new TextEncoder();
+                    const bytes = encoder.encode(jsonData);
+                    const binaryString = Array.from(bytes, byte => String.fromCharCode(byte)).join('');
+                    contentBase64 = btoa(binaryString);
+                }
+
+                updateProgress(70, 'Uploading to main branch...');
+
+                const uploadData = {
+                    message: `Update ${targetPath} - ${new Date().toISOString().split('T')[0]} (${dataSizeMB}MB) [Direct Upload]`,
+                    content: contentBase64,
+                    branch: GITHUB_CONFIG.baseBranch
+                };
+
+                if (sha) {
+                    uploadData.sha = sha;
+                }
+
+                const uploadUrl = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${encodeURIComponent(targetPath)}`;
+                const uploadResponse = await fetch(uploadUrl, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `token ${GITHUB_CONFIG.token}`,
+                        'Accept': 'application/vnd.github.v3+json',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(uploadData)
+                });
+
+                updateProgress(90, 'Processing response...');
+
+                if (uploadResponse.ok) {
+                    const result = await uploadResponse.json();
+                    updateProgress(100, 'Direct upload completed!');
+                    
+                    showGitHubStatus('success', `✅ Successfully uploaded directly to main branch! File: ${result.content.name} (${dataSizeMB}MB)`);
+                    
+                    // Show direct link to the file
+                    const fileUrl = `https://github.com/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/blob/${GITHUB_CONFIG.baseBranch}/${targetPath}`;
+                    setTimeout(() => {
+                        showGitHubStatus('info', `🔗 View file: ${fileUrl}`);
+                    }, 2000);
+                    
+                    return result;
+                } else {
+                    const error = await uploadResponse.json().catch(() => ({ message: 'Unknown error' }));
+                    throw new Error(`Direct upload failed: ${error.message || uploadResponse.statusText}`);
+                }
+
+            } catch (error) {
+                updateProgress(0, 'Direct upload failed');
+                showGitHubStatus('error', `❌ Direct upload failed: ${error.message}`);
+                throw error;
+            }
+        }
+
         // Function to test DOM elements
         function testDOMElements() {
             try {
@@ -2576,20 +2941,43 @@
         function showGitHubHelp() {
             console.log('❓ showGitHubHelp() called');
             const helpText = `
-🔧 GitHub Upload Help:
+🔧 GitHub Upload Help - ENHANCED WORKFLOW:
 
 1. **Setup Required:**
    - Set your GitHub Personal Access Token
    - Repository: MovieAddict88/Movie-Source
    - Token needs 'repo' scope permissions
 
-2. **Upload Workflow:**
-   - Files upload to 'upload-*' branches
-   - ZIP files trigger automatic unzipping workflow
-   - Workflow extracts playlist.json from playlist.json.zip
-   - Results are committed back to the same branch
+2. **NEW: Upload Methods:**
+   
+   🎯 **Direct to Main (Immediate):**
+   - Uploads directly to main branch
+   - Changes are immediately live
+   - ⚠️ Use with caution - no review process
+   
+   🌿 **Branch + Pull Request (Recommended):**
+   - Uploads to temporary branch (upload-YYYY-MM-DD-HHMM)
+   - Automatically creates Pull Request
+   - Option to auto-merge (requires admin permissions)
+   - Allows for review before changes go live
 
-3. **Large Data Handling:**
+3. **Quick Actions:**
+   - 🎯 Quick Upload to Main: Bypasses branch workflow
+   - 🌿 Upload + Create PR: Forces PR creation
+   - 🔍 Check Branches: Shows all upload branches and pending PRs
+
+4. **After Upload - What Happens Next:**
+   
+   **If Direct Upload:**
+   ✅ File is immediately live on main branch
+   
+   **If Branch Upload:**
+   📤 File uploaded to upload-branch
+   📋 Pull Request created automatically (if enabled)
+   🔍 Review PR at: github.com/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/pulls
+   ✅ Merge PR to make changes live on main branch
+
+5. **Large Data Handling:**
    - Enable "Use Zip" for files >10MB
    - Zip compression reduces file size significantly
    - GitHub limit: 100MB per file
@@ -3157,6 +3545,41 @@
                                     <input type="checkbox" id="github-minify" onchange="updateGitHubConfigFromInputs();"> Minify JSON before upload
                                 </label>
                             </div>
+                            
+                            <!-- NEW: Upload Workflow Options -->
+                            <div class="form-group">
+                                <h4 style="color: var(--accent); margin-bottom: 10px;">📋 Upload Workflow</h4>
+                                <div style="display: grid; gap: 10px;">
+                                    <label>
+                                        <input type="radio" name="upload-method" value="branch" checked onchange="updateUploadMethod()"> 
+                                        🌿 Branch Upload → Pull Request (Recommended)
+                                    </label>
+                                    <small class="form-text" style="margin-left: 20px;">Uploads to a temporary branch, then creates a pull request for review</small>
+                                    
+                                    <label>
+                                        <input type="radio" name="upload-method" value="direct" onchange="updateUploadMethod()"> 
+                                        🎯 Direct to Main Branch (Immediate)
+                                    </label>
+                                    <small class="form-text" style="margin-left: 20px;">⚠️ Uploads directly to main branch - changes are immediate and live</small>
+                                </div>
+                            </div>
+                            
+                            <!-- Branch Upload Options -->
+                            <div id="branch-upload-options" class="form-group">
+                                <h5 style="color: var(--text-secondary); margin-bottom: 8px;">Branch Upload Options</h5>
+                                <label>
+                                    <input type="checkbox" id="github-create-pr" checked onchange="updateGitHubConfigFromInputs()"> 
+                                    📋 Auto-create Pull Request
+                                </label>
+                                <small class="form-text">Automatically creates a PR to merge changes to main branch</small>
+                                
+                                <label style="margin-top: 8px; display: block;">
+                                    <input type="checkbox" id="github-auto-merge" onchange="updateGitHubConfigFromInputs()"> 
+                                    🤖 Auto-merge PR (requires admin permissions)
+                                </label>
+                                <small class="form-text">⚠️ Automatically merges the PR - use with caution</small>
+                            </div>
+                            
                             <div class="form-group" id="github-raw-path-wrap" style="display:none;">
                                 <label for="github-raw-path">File Path</label>
                                 <input type="text" id="github-raw-path" class="form-control" placeholder="playlist.json">
@@ -3175,6 +3598,15 @@
                                 <button class="btn btn-warning" onclick="testRepoAccess()">🧪 Test Repo Access</button>
                                 <button class="btn btn-accent" onclick="exportToGitHub()">📤 Upload to GitHub</button>
                             </div>
+                            
+                            <!-- Quick Action Buttons -->
+                            <div class="form-group">
+                                <h5 style="color: var(--text-secondary); margin-bottom: 8px;">⚡ Quick Actions</h5>
+                                <button class="btn btn-primary btn-small" onclick="quickUploadToMain()">🎯 Quick Upload to Main</button>
+                                <button class="btn btn-success btn-small" onclick="uploadWithPR()">🌿 Upload + Create PR</button>
+                                <button class="btn btn-warning btn-small" onclick="checkCurrentBranches()">🔍 Check Branches</button>
+                            </div>
+                            
                             <div class="form-group">
                                 <button class="btn btn-secondary btn-small" onclick="showGitHubHelp()">❓ Help</button>
                                 <button class="btn btn-secondary btn-small" onclick="openWorkflowStatus()">⚙️ Workflow Status</button>

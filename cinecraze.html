@@ -1418,6 +1418,7 @@
         }
 
         function saveGitHubSettings() {
+            console.log('💾 saveGitHubSettings() called');
             try {
                 localStorage.setItem('github_config', JSON.stringify(GITHUB_CONFIG));
                 showGitHubStatus('success', 'GitHub settings saved.');
@@ -1527,6 +1528,7 @@
         }
 
         async function testRepoAccess() {
+            console.log('🧪 testRepoAccess() called');
             updateGitHubConfigFromInputs();
             if (!GITHUB_CONFIG.token) {
                 showGitHubStatus('error', 'Please set your GitHub token first.');
@@ -1884,6 +1886,7 @@
 
         // Function to export current data to GitHub
         async function exportToGitHub() {
+            console.log('📤 exportToGitHub() called');
             if (!currentData || !currentData.Categories) {
                 showGitHubStatus('error', 'No data to export! Please load or create some categories first.');
                 return;
@@ -1935,6 +1938,7 @@
 
         // Function to debug current data
         function debugCurrentData() {
+            console.log('🔍 debugCurrentData() called');
             console.log('🔍 DEBUG: Current Data Structure');
             console.log('='.repeat(50));
             console.log('📊 currentData exists:', !!currentData);
@@ -1961,6 +1965,7 @@
 
         // Function to debug GitHub configuration
         function debugGitHubConfig() {
+            console.log('⚙️ debugGitHubConfig() called');
             console.log('🔍 DEBUG: GitHub Configuration');
             console.log('='.repeat(50));
             console.log('🔑 Token configured:', !!GITHUB_CONFIG.token);
@@ -1980,6 +1985,7 @@
 
         // Function to set GitHub token from input
         function setGitHubToken() {
+            console.log('🔑 setGitHubToken() called');
             const tokenInput = document.getElementById('github-token');
             const token = tokenInput.value.trim();
             
@@ -1996,6 +2002,7 @@
 
         // Function to check GitHub token status
         function checkGitHubToken() {
+            console.log('🔍 checkGitHubToken() called');
             if (GITHUB_CONFIG.token) {
                 showGitHubStatus('success', 'GitHub token is configured and ready to use!');
             } else {
@@ -2005,6 +2012,7 @@
 
         // Function to test JSZip functionality
         async function testJSZip() {
+            console.log('🗜️ testJSZip() called');
             if (!isJSZipAvailable()) {
                 showGitHubStatus('error', 'JSZip library not loaded. Please refresh the page and try again.');
                 return;
@@ -2054,6 +2062,7 @@
 
         // Function to show GitHub upload help
         function showGitHubHelp() {
+            console.log('❓ showGitHubHelp() called');
             const helpText = `
 🔧 GitHub Upload Help:
 
@@ -2644,6 +2653,7 @@
                             <div class="form-group">
                                 <button class="btn btn-secondary btn-small" onclick="showGitHubHelp()">❓ Help</button>
                                 <button class="btn btn-secondary btn-small" onclick="openWorkflowStatus()">⚙️ Workflow Status</button>
+                                <button class="btn btn-secondary btn-small" onclick="console.log('🧪 Test button clicked!'); alert('JavaScript is working!');">🧪 Test JS</button>
                             </div>
                             
                             <!-- GitHub Upload Progress -->

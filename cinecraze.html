@@ -1353,6 +1353,21 @@
             color: var(--warning);
             border: 1px solid rgba(255, 165, 0, 0.3);
         }
+
+        .btn-small {
+            padding: 4px 8px;
+            font-size: 0.8rem;
+            margin: 2px;
+        }
+
+        .github-upload-section .form-group {
+            margin-bottom: 15px;
+        }
+
+        .github-upload-section .btn {
+            margin-right: 8px;
+            margin-bottom: 8px;
+        }
     </style>
     
     <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
@@ -1371,6 +1386,11 @@
             minify: true,
             token: ''
         };
+
+        // Check if JSZip is available
+        function isJSZipAvailable() {
+            return typeof JSZip !== 'undefined' && JSZip;
+        }
 
         function getDefaultUploadBranch() {
             const d = new Date();
@@ -1523,10 +1543,32 @@
                 showGitHubStatus('error', `Repo access error: ${e.message}`);
             }
 
+        // Function to validate GitHub configuration
+        function validateGitHubConfig() {
+            const errors = [];
+            
+            if (!GITHUB_CONFIG.token) {
+                errors.push('GitHub token is required');
+            }
+            if (!GITHUB_CONFIG.owner) {
+                errors.push('Repository owner is required');
+            }
+            if (!GITHUB_CONFIG.repo) {
+                errors.push('Repository name is required');
+            }
+            if (!GITHUB_CONFIG.branch) {
+                errors.push('Branch name is required');
+            }
+            
+            return errors;
+        }
+
         // Function to upload JSON to GitHub
         async function uploadToGitHub(jsonData, filename = 'playlist.json') {
-            if (!GITHUB_CONFIG.token) {
-                showGitHubStatus('error', 'GitHub token not configured. Please set your token first.');
+            // Validate configuration first
+            const configErrors = validateGitHubConfig();
+            if (configErrors.length > 0) {
+                showGitHubStatus('error', `Configuration errors: ${configErrors.join(', ')}`);
                 return;
             }
 
@@ -1535,14 +1577,14 @@
             const progressText = document.getElementById('github-upload-progress-text');
 
             try {
-                // Show progress bar
-                if (progressBar) {
+                // Initialize progress bar
+                if (progressBar && progressFill && progressText) {
                     progressBar.style.display = 'block';
                     progressFill.style.width = '0%';
-                }
-                if (progressText) {
                     progressText.style.display = 'block';
                     progressText.textContent = 'Initializing upload...';
+                } else {
+                    console.warn('Progress bar elements not found');
                 }
 
                 updateGitHubConfigFromInputs();
@@ -1574,24 +1616,77 @@
                 console.log('🔍 Data contains Categories:', jsonData.includes('"Categories"'));
                 console.log('🔍 Data contains Movies:', jsonData.includes('"Movies"'));
                 
+                // Validate data integrity
+                if (!jsonData || jsonData.length === 0) {
+                    throw new Error('No data to upload. Please check your data source.');
+                }
+                
+                if (!jsonData.includes('"Categories"')) {
+                    throw new Error('Invalid data format. Expected JSON with "Categories" field.');
+                }
+                
+                // Check for minimum data size
+                if (jsonData.length < 100) {
+                    throw new Error('Data appears to be too small. Please check if data is properly loaded.');
+                }
+                
                 let contentBase64 = '';
                 let dataSizeMB = (jsonData.length / 1024 / 1024).toFixed(2);
+                
                 if (GITHUB_CONFIG.useZip) {
-                    const zip = new JSZip();
-                    zip.file('playlist.json', jsonData);
-                    const base64Zip = await zip.generateAsync(
-                        { type: 'base64', compression: 'DEFLATE', compressionOptions: { level: 9 } },
-                        (metadata) => {
-                            const pct = Math.min(60, 35 + Math.floor(metadata.percent * 0.25));
-                            updateProgress(pct, `Zipping (${metadata.percent.toFixed(0)}%)...`);
+                    // Check if JSZip is available
+                    if (!isJSZipAvailable()) {
+                        console.warn('JSZip not available, falling back to raw upload');
+                        showGitHubStatus('warning', 'JSZip library not available. Using raw upload instead.');
+                        GITHUB_CONFIG.useZip = false;
+                        // Update the UI to reflect this change
+                        const useZipEl = document.getElementById('github-use-zip');
+                        if (useZipEl) {
+                            useZipEl.checked = false;
                         }
-                    );
-                    contentBase64 = base64Zip;
-                    const zipBytes = Math.floor((base64Zip.length * 3) / 4);
-                    dataSizeMB = (zipBytes / 1024 / 1024).toFixed(2);
-                    console.log('🗜️ Zipped size (MB):', dataSizeMB);
+                    }
+                    
+                    try {
+                        updateProgress(35, 'Creating zip file...');
+                        const zip = new JSZip();
+                        zip.file('playlist.json', jsonData);
+                        
+                        updateProgress(40, 'Compressing data...');
+                        const base64Zip = await zip.generateAsync(
+                            { 
+                                type: 'base64', 
+                                compression: 'DEFLATE', 
+                                compressionOptions: { level: 6 } // Reduced compression level for better performance
+                            },
+                            (metadata) => {
+                                const pct = Math.min(65, 40 + Math.floor(metadata.percent * 0.25));
+                                updateProgress(pct, `Compressing (${metadata.percent.toFixed(0)}%)...`);
+                            }
+                        );
+                        
+                        contentBase64 = base64Zip;
+                        const zipBytes = Math.floor((base64Zip.length * 3) / 4);
+                        dataSizeMB = (zipBytes / 1024 / 1024).toFixed(2);
+                        console.log('🗜️ Zipped size (MB):', dataSizeMB);
+                        console.log('🗜️ Compression ratio:', ((1 - zipBytes / jsonData.length) * 100).toFixed(1) + '%');
+                        
+                    } catch (zipError) {
+                        console.error('Zip creation error:', zipError);
+                        throw new Error(`Failed to create zip file: ${zipError.message}`);
+                    }
                 } else {
-                    contentBase64 = btoa(unescape(encodeURIComponent(jsonData)));
+                    updateProgress(35, 'Encoding data to base64...');
+                    try {
+                        // Use a more robust base64 encoding method
+                        const encoder = new TextEncoder();
+                        const bytes = encoder.encode(jsonData);
+                        const binaryString = Array.from(bytes, byte => String.fromCharCode(byte)).join('');
+                        contentBase64 = btoa(binaryString);
+                    } catch (encodeError) {
+                        console.error('Base64 encoding error:', encodeError);
+                        // Fallback to the original method
+                        contentBase64 = btoa(unescape(encodeURIComponent(jsonData)));
+                    }
                 }
                 
                 console.log('🔍 Encoded content length:', contentBase64.length);
@@ -1609,17 +1704,48 @@
 
                 updateProgress(70, 'Uploading to GitHub...');
 
-                // Upload the file
+                // Upload the file with timeout and retry logic
                 const uploadUrl = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${encodeURIComponent(targetPath)}`;
-                const uploadResponse = await fetch(uploadUrl, {
-                    method: 'PUT',
-                    headers: {
-                        'Authorization': `token ${GITHUB_CONFIG.token}`,
-                        'Accept': 'application/vnd.github.v3+json',
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(uploadData)
-                });
+                
+                const uploadWithRetry = async (retries = 2) => {
+                    for (let attempt = 1; attempt <= retries; attempt++) {
+                        try {
+                            updateProgress(70, `Uploading to GitHub (attempt ${attempt}/${retries})...`);
+                            
+                            const controller = new AbortController();
+                            const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+                            
+                            const uploadResponse = await fetch(uploadUrl, {
+                                method: 'PUT',
+                                headers: {
+                                    'Authorization': `token ${GITHUB_CONFIG.token}`,
+                                    'Accept': 'application/vnd.github.v3+json',
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify(uploadData),
+                                signal: controller.signal
+                            });
+                            
+                            clearTimeout(timeoutId);
+                            return uploadResponse;
+                            
+                        } catch (error) {
+                            if (error.name === 'AbortError') {
+                                console.warn(`Upload attempt ${attempt} timed out`);
+                                if (attempt === retries) {
+                                    throw new Error('Upload timed out after multiple attempts');
+                                }
+                            } else if (attempt === retries) {
+                                throw error;
+                            } else {
+                                console.warn(`Upload attempt ${attempt} failed, retrying...`, error);
+                                await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds before retry
+                            }
+                        }
+                    }
+                };
+                
+                const uploadResponse = await uploadWithRetry();
 
                 updateProgress(90, 'Processing response...');
 
@@ -1627,24 +1753,69 @@
                     const result = await uploadResponse.json();
                     updateProgress(100, 'Upload completed successfully!');
                     
-                    showGitHubStatus('success', `✅ Successfully uploaded to GitHub! File: ${result.content.name} (${dataSizeMB}MB)`);
+                    const finalSizeMB = GITHUB_CONFIG.useZip ? 
+                        (Math.floor((contentBase64.length * 3) / 4) / 1024 / 1024).toFixed(2) : 
+                        dataSizeMB;
+                    
+                    showGitHubStatus('success', `✅ Successfully uploaded to GitHub! File: ${result.content.name} (${finalSizeMB}MB)`);
+                    
+                    // Show compression info if zip was used
+                    if (GITHUB_CONFIG.useZip) {
+                        const originalSize = parseFloat(dataSizeMB);
+                        const compressedSize = parseFloat(finalSizeMB);
+                        const compressionRatio = ((1 - compressedSize / originalSize) * 100).toFixed(1);
+                        setTimeout(() => {
+                            showGitHubStatus('info', `🗜️ Compression: ${compressionRatio}% smaller (${originalSize}MB → ${compressedSize}MB)`);
+                        }, 1000);
+                    }
                     
                     // Show the GitHub URL
                     const fileUrl = `https://github.com/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/blob/${targetBranch}/${targetPath}`;
                     setTimeout(() => {
                         showGitHubStatus('info', `🔗 View file: ${fileUrl}`);
-                    }, 2000);
+                    }, 3000);
                     
                     // Hide progress bar after success
                     setTimeout(() => {
                         if (progressBar) progressBar.style.display = 'none';
                         if (progressText) progressText.style.display = 'none';
-                    }, 3000);
+                    }, 5000);
                     
                 } else {
-                    const error = await uploadResponse.json();
+                    let errorMessage = 'Unknown error';
+                    try {
+                        const error = await uploadResponse.json();
+                        errorMessage = error.message || error.error || 'Unknown error';
+                    } catch (parseError) {
+                        errorMessage = uploadResponse.statusText || `HTTP ${uploadResponse.status}`;
+                    }
+                    
                     updateProgress(0, 'Upload failed');
-                    showGitHubStatus('error', `❌ GitHub upload failed: ${error.message}`);
+                    showGitHubStatus('error', `❌ GitHub upload failed: ${errorMessage}`);
+                    
+                    console.error('GitHub API Error:', {
+                        status: uploadResponse.status,
+                        statusText: uploadResponse.statusText,
+                        message: errorMessage
+                    });
+                    
+                    // Provide specific error suggestions
+                    let suggestion = '';
+                    if (uploadResponse.status === 401) {
+                        suggestion = ' Check your GitHub token and make sure it has the correct permissions.';
+                    } else if (uploadResponse.status === 403) {
+                        suggestion = ' You may not have write access to this repository.';
+                    } else if (uploadResponse.status === 413) {
+                        suggestion = ' File is too large. Try enabling zip compression or splitting the data.';
+                    } else if (uploadResponse.status === 422) {
+                        suggestion = ' Invalid file path or branch name.';
+                    }
+                    
+                    if (suggestion) {
+                        setTimeout(() => {
+                            showGitHubStatus('warning', `💡 Suggestion:${suggestion}`);
+                        }, 2000);
+                    }
                     
                     if (progressBar) {
                         setTimeout(() => {
@@ -1668,14 +1839,37 @@
             }
 
             function updateProgress(percentage, message) {
-                if (progressFill) {
-                    progressFill.style.width = `${percentage}%`;
+                try {
+                    if (progressFill) {
+                        progressFill.style.width = `${percentage}%`;
+                    }
+                    if (progressText) {
+                        progressText.textContent = message;
+                    }
+                    console.log(`📊 Upload Progress: ${percentage}% - ${message}`);
+                } catch (error) {
+                    console.warn('Progress update error:', error);
                 }
-                if (progressText) {
-                    progressText.textContent = message;
-                }
-                console.log(`📊 Upload Progress: ${percentage}% - ${message}`);
             }
+        }
+
+        // Function to check if data is too large for GitHub
+        function checkDataSize(dataStr) {
+            const sizeMB = dataStr.length / 1024 / 1024;
+            const maxSizeMB = 100; // GitHub file size limit is 100MB
+            
+            if (sizeMB > maxSizeMB) {
+                return {
+                    tooLarge: true,
+                    sizeMB: sizeMB.toFixed(2),
+                    maxSizeMB: maxSizeMB
+                };
+            }
+            
+            return {
+                tooLarge: false,
+                sizeMB: sizeMB.toFixed(2)
+            };
         }
 
         // Function to export current data to GitHub
@@ -1697,12 +1891,20 @@
                 // Use current data directly instead of save/reload cycle
                 // This prevents uploading compressed/empty data
                 const dataStr = GITHUB_CONFIG.minify ? JSON.stringify(currentData) : JSON.stringify(currentData, null, 2);
-                const dataSizeMB = (dataStr.length / 1024 / 1024).toFixed(2);
                 
-                console.log(`📤 Uploading ${dataSizeMB}MB of current data to GitHub`);
+                // Check data size
+                const sizeCheck = checkDataSize(dataStr);
+                console.log(`📤 Data size: ${sizeCheck.sizeMB}MB`);
+                
+                if (sizeCheck.toLarge) {
+                    showGitHubStatus('error', `Data too large (${sizeCheck.sizeMB}MB). GitHub limit is ${sizeCheck.maxSizeMB}MB. Consider using zip compression or splitting the data.`);
+                    return;
+                }
+                
+                console.log(`📤 Uploading ${sizeCheck.sizeMB}MB of current data to GitHub`);
                 console.log('📋 Data preview (first 500 chars):', dataStr.substring(0, 500) + '...');
                 
-                showGitHubStatus('info', `Uploading current data (${dataSizeMB}MB) to GitHub...`);
+                showGitHubStatus('info', `Uploading current data (${sizeCheck.sizeMB}MB) to GitHub...`);
                 
                 // Also save locally for backup
                 try {
@@ -1747,6 +1949,25 @@
             showGitHubStatus('info', `Debug complete! Data size: ${dataSizeMB}MB. Check console for details.`);
         }
 
+        // Function to debug GitHub configuration
+        function debugGitHubConfig() {
+            console.log('🔍 DEBUG: GitHub Configuration');
+            console.log('='.repeat(50));
+            console.log('🔑 Token configured:', !!GITHUB_CONFIG.token);
+            console.log('👤 Owner:', GITHUB_CONFIG.owner);
+            console.log('📦 Repo:', GITHUB_CONFIG.repo);
+            console.log('🌿 Base Branch:', GITHUB_CONFIG.baseBranch);
+            console.log('🌿 Upload Branch:', GITHUB_CONFIG.branch);
+            console.log('📁 Raw Path:', GITHUB_CONFIG.rawPath);
+            console.log('🗜️ Zip Path:', GITHUB_CONFIG.zipPath);
+            console.log('🗜️ Use Zip:', GITHUB_CONFIG.useZip);
+            console.log('📝 Minify:', GITHUB_CONFIG.minify);
+            console.log('📦 JSZip Available:', isJSZipAvailable());
+            console.log('='.repeat(50));
+            
+            showGitHubStatus('info', 'GitHub configuration debug complete. Check console for details.');
+        }
+
         // Function to set GitHub token from input
         function setGitHubToken() {
             const tokenInput = document.getElementById('github-token');
@@ -1772,17 +1993,76 @@
             }
         }
 
+        // Function to test JSZip functionality
+        async function testJSZip() {
+            if (!isJSZipAvailable()) {
+                showGitHubStatus('error', 'JSZip library not loaded. Please refresh the page and try again.');
+                return;
+            }
+            
+            try {
+                showGitHubStatus('info', 'Testing JSZip functionality...');
+                const zip = new JSZip();
+                zip.file('test.txt', 'Hello World');
+                const result = await zip.generateAsync({ type: 'base64' });
+                
+                if (result && result.length > 0) {
+                    showGitHubStatus('success', 'JSZip is working correctly!');
+                } else {
+                    showGitHubStatus('error', 'JSZip test failed - no output generated.');
+                }
+            } catch (error) {
+                showGitHubStatus('error', `JSZip test failed: ${error.message}`);
+            }
+        }
+
         // Function to show GitHub status messages
         function showGitHubStatus(type, message) {
             const statusDiv = document.getElementById('github-status');
-            statusDiv.className = `github-status ${type}`;
-            statusDiv.textContent = message;
-            statusDiv.style.display = 'block';
+            if (statusDiv) {
+                statusDiv.className = `github-status ${type}`;
+                statusDiv.textContent = message;
+                statusDiv.style.display = 'block';
+                
+                // Auto-hide after 8 seconds for info/success, 12 seconds for errors
+                const hideDelay = (type === 'error' || type === 'warning') ? 12000 : 8000;
+                setTimeout(() => {
+                    statusDiv.style.display = 'none';
+                }, hideDelay);
+            } else {
+                console.warn('GitHub status div not found');
+                console.log(`[${type.toUpperCase()}] ${message}`);
+            }
+        }
+
+        // Function to show GitHub upload help
+        function showGitHubHelp() {
+            const helpText = `
+🔧 GitHub Upload Help:
+
+1. **Setup Required:**
+   - Set your GitHub Personal Access Token
+   - Configure repository owner and name
+   - Choose upload branch
+
+2. **Large Data Handling:**
+   - Enable "Use Zip" for files >10MB
+   - Zip compression reduces file size significantly
+   - GitHub limit: 100MB per file
+
+3. **Troubleshooting:**
+   - Test repository access first
+   - Check token permissions (repo scope needed)
+   - Use debug functions for detailed info
+
+4. **Best Practices:**
+   - Use descriptive branch names
+   - Enable minification for smaller files
+   - Test with small data first
+            `;
             
-            // Auto-hide after 8 seconds
-            setTimeout(() => {
-                statusDiv.style.display = 'none';
-            }, 8000);
+            console.log(helpText);
+            showGitHubStatus('info', 'GitHub upload help displayed in console. Check browser console for details.');
         }
 
         // Load token and settings from localStorage on page load
@@ -1793,6 +2073,20 @@
             }
             loadGitHubSettings();
             updateGitHubFormFromConfig();
+            
+            // Check JSZip availability after page load
+            setTimeout(() => {
+                if (!isJSZipAvailable()) {
+                    console.warn('JSZip library not loaded. Zip functionality will be disabled.');
+                    // Disable zip option if JSZip is not available
+                    const useZipEl = document.getElementById('github-use-zip');
+                    if (useZipEl) {
+                        useZipEl.checked = false;
+                        useZipEl.disabled = true;
+                        GITHUB_CONFIG.useZip = false;
+                    }
+                }
+            }, 1000);
         });
     </script>
 </head>
@@ -2310,9 +2604,14 @@
                                 <button class="btn btn-success" onclick="setGitHubToken()">🔑 Set Token</button>
                                 <button class="btn btn-info" onclick="checkGitHubToken()">🔍 Check Token</button>
                                 <button class="btn btn-secondary" onclick="debugCurrentData()">🔍 Debug Data</button>
+                                <button class="btn btn-secondary" onclick="debugGitHubConfig()">⚙️ Debug Config</button>
+                                <button class="btn btn-secondary" onclick="testJSZip()">🗜️ Test Zip</button>
                                 <button class="btn btn-secondary" onclick="updateGitHubConfigFromInputs(); saveGitHubSettings();">💾 Save Settings</button>
                                 <button class="btn btn-warning" onclick="testRepoAccess()">🧪 Test Repo Access</button>
                                 <button class="btn btn-accent" onclick="exportToGitHub()">📤 Upload to GitHub</button>
+                            </div>
+                            <div class="form-group">
+                                <button class="btn btn-secondary btn-small" onclick="showGitHubHelp()">❓ Help</button>
                             </div>
                             
                             <!-- GitHub Upload Progress -->

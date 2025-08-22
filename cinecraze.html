@@ -1374,6 +1374,8 @@
     
     <!-- GitHub Upload Script -->
     <script>
+        console.log('🚀 GitHub Upload Script loading...');
+        
         // GitHub Upload Configuration
         const GITHUB_CONFIG = {
             owner: 'MovieAddict88',
@@ -2044,22 +2046,27 @@
 
         // Function to test DOM elements
         function testDOMElements() {
-            console.log('🧪 Testing DOM elements...');
-            const elements = [
-                'github-token',
-                'github-owner', 
-                'github-repo',
-                'github-branch',
-                'github-status',
-                'github-upload-progress',
-                'github-upload-progress-fill',
-                'github-upload-progress-text'
-            ];
-            
-            elements.forEach(id => {
-                const element = document.getElementById(id);
-                console.log(`${element ? '✅' : '❌'} ${id}: ${element ? 'Found' : 'Not found'}`);
-            });
+            try {
+                console.log('🧪 Testing DOM elements...');
+                const elements = [
+                    'github-token',
+                    'github-owner', 
+                    'github-repo',
+                    'github-branch',
+                    'github-status',
+                    'github-upload-progress',
+                    'github-upload-progress-fill',
+                    'github-upload-progress-text'
+                ];
+                
+                elements.forEach(id => {
+                    const element = document.getElementById(id);
+                    console.log(`${element ? '✅' : '❌'} ${id}: ${element ? 'Found' : 'Not found'}`);
+                });
+            } catch (error) {
+                console.error('❌ Error in testDOMElements:', error);
+                alert('Error in testDOMElements: ' + error.message);
+            }
         }
 
         // Function to show GitHub status messages
@@ -2681,7 +2688,8 @@
                                 <button class="btn btn-secondary btn-small" onclick="showGitHubHelp()">❓ Help</button>
                                 <button class="btn btn-secondary btn-small" onclick="openWorkflowStatus()">⚙️ Workflow Status</button>
                                 <button class="btn btn-secondary btn-small" onclick="console.log('🧪 Test button clicked!'); alert('JavaScript is working!');">🧪 Test JS</button>
-                                <button class="btn btn-secondary btn-small" onclick="testDOMElements()">🔍 Test DOM</button>
+                                <button class="btn btn-secondary btn-small" onclick="if(typeof testDOMElements === 'function') { testDOMElements(); } else { alert('testDOMElements function not found!'); console.log('Available functions:', Object.keys(window).filter(k => k.includes('test') || k.includes('GitHub'))); }">🔍 Test DOM</button>
+                                <button class="btn btn-secondary btn-small" onclick="console.log('🧪 Simple test'); alert('Simple test works');">🧪 Simple Test</button>
                             </div>
                             
                             <!-- GitHub Upload Progress -->

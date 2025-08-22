@@ -2036,13 +2036,35 @@
 
         // Function to open workflow status
         function openWorkflowStatus() {
+            console.log('⚙️ openWorkflowStatus() called');
             const workflowUrl = `https://github.com/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/actions`;
             window.open(workflowUrl, '_blank');
             showGitHubStatus('info', 'Opening workflow status in new tab...');
         }
 
+        // Function to test DOM elements
+        function testDOMElements() {
+            console.log('🧪 Testing DOM elements...');
+            const elements = [
+                'github-token',
+                'github-owner', 
+                'github-repo',
+                'github-branch',
+                'github-status',
+                'github-upload-progress',
+                'github-upload-progress-fill',
+                'github-upload-progress-text'
+            ];
+            
+            elements.forEach(id => {
+                const element = document.getElementById(id);
+                console.log(`${element ? '✅' : '❌'} ${id}: ${element ? 'Found' : 'Not found'}`);
+            });
+        }
+
         // Function to show GitHub status messages
         function showGitHubStatus(type, message) {
+            console.log(`📢 showGitHubStatus(${type}, "${message}") called`);
             const statusDiv = document.getElementById('github-status');
             if (statusDiv) {
                 statusDiv.className = `github-status ${type}`;
@@ -2054,9 +2076,14 @@
                 setTimeout(() => {
                     statusDiv.style.display = 'none';
                 }, hideDelay);
+                console.log(`✅ Status message displayed: ${message}`);
             } else {
-                console.warn('GitHub status div not found');
+                console.warn('❌ GitHub status div not found');
                 console.log(`[${type.toUpperCase()}] ${message}`);
+                // Fallback: show alert for critical messages
+                if (type === 'error') {
+                    alert(`Error: ${message}`);
+                }
             }
         }
 
@@ -2654,6 +2681,7 @@
                                 <button class="btn btn-secondary btn-small" onclick="showGitHubHelp()">❓ Help</button>
                                 <button class="btn btn-secondary btn-small" onclick="openWorkflowStatus()">⚙️ Workflow Status</button>
                                 <button class="btn btn-secondary btn-small" onclick="console.log('🧪 Test button clicked!'); alert('JavaScript is working!');">🧪 Test JS</button>
+                                <button class="btn btn-secondary btn-small" onclick="testDOMElements()">🔍 Test DOM</button>
                             </div>
                             
                             <!-- GitHub Upload Progress -->

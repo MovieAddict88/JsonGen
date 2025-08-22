@@ -1374,7 +1374,50 @@
     
     <!-- GitHub Upload Script -->
     <script>
-        console.log('🚀 GitHub Upload Script loading...');
+        console.log('🚀 CineCraze Enhanced Script loading...');
+        
+        /*
+         * ===================================================================
+         * CINECRAZE ENHANCED - COMPREHENSIVE FIXES AND IMPROVEMENTS
+         * ===================================================================
+         * 
+         * ✅ FIXED ISSUES:
+         * - Fixed syntax error: toLarge -> tooLarge in exportToGitHub function
+         * - Fixed missing closing brace in testRepoAccess function
+         * - Fixed nested updateProgress function scope issue
+         * 
+         * 🚀 NEW FEATURES:
+         * - Enhanced progress tracking system with color coding
+         * - Global operation manager with real-time dashboard
+         * - Comprehensive error boundary system
+         * - Performance monitoring with memory tracking
+         * - Auto-hiding status indicators with animations
+         * - Health check system for application integrity
+         * - Enhanced bulk operations with ETA calculations
+         * - Improved import progress with detailed statistics
+         * 
+         * 📊 PROGRESS INDICATORS:
+         * - GitHub upload progress with retry tracking
+         * - Bulk generation progress with item-level tracking
+         * - Genre generation progress with multi-type support
+         * - Import progress with speed and ETA calculations
+         * - Global operation dashboard with active/completed operations
+         * 
+         * 🛡️ ERROR HANDLING:
+         * - Global error boundary for unhandled exceptions
+         * - Promise rejection handling
+         * - Function-level error wrapping
+         * - Graceful fallbacks for missing DOM elements
+         * 
+         * 🎨 UI IMPROVEMENTS:
+         * - Animated status messages with timestamps
+         * - Color-coded progress bars
+         * - Loading spinners with animations
+         * - Status dashboard with operation history
+         * - Mobile-friendly responsive design
+         * 
+         * ===================================================================
+         */
         
         // GitHub Upload Configuration
         const GITHUB_CONFIG = {
@@ -1573,6 +1616,7 @@
             } catch (e) {
                 showGitHubStatus('error', `Repo access error: ${e.message}`);
             }
+        }
 
         // Function to validate GitHub configuration
         function validateGitHubConfig() {
@@ -1877,20 +1921,412 @@
                 }
             }
 
-            function updateProgress(percentage, message) {
-                try {
-                    if (progressFill) {
-                        progressFill.style.width = `${percentage}%`;
-                    }
-                    if (progressText) {
-                        progressText.textContent = message;
-                    }
-                    console.log(`📊 Upload Progress: ${percentage}% - ${message}`);
-                } catch (error) {
-                    console.warn('Progress update error:', error);
+        }
+
+        // Global progress update function for GitHub uploads
+        function updateProgress(percentage, message) {
+            try {
+                const progressFill = document.getElementById('github-upload-progress-fill');
+                const progressText = document.getElementById('github-upload-progress-text');
+                
+                if (progressFill) {
+                    progressFill.style.width = `${percentage}%`;
+                    progressFill.style.transition = 'width 0.3s ease';
                 }
+                if (progressText) {
+                    progressText.textContent = message;
+                }
+                console.log(`📊 Upload Progress: ${percentage}% - ${message}`);
+            } catch (error) {
+                console.warn('Progress update error:', error);
             }
         }
+
+        // Enhanced progress indicator system
+        function updateProgressBar(elementId, percentage, message) {
+            try {
+                const progressBar = document.getElementById(elementId);
+                const progressFill = document.getElementById(elementId + '-fill');
+                const progressText = document.getElementById(elementId + '-text');
+                
+                if (progressBar) {
+                    progressBar.style.display = 'block';
+                }
+                
+                if (progressFill) {
+                    progressFill.style.width = `${Math.min(100, Math.max(0, percentage))}%`;
+                    progressFill.style.transition = 'width 0.3s ease';
+                    
+                    // Add color coding based on progress
+                    if (percentage >= 100) {
+                        progressFill.style.background = 'var(--success)';
+                    } else if (percentage >= 75) {
+                        progressFill.style.background = 'linear-gradient(90deg, var(--accent), var(--primary))';
+                    } else {
+                        progressFill.style.background = 'var(--primary)';
+                    }
+                }
+                
+                if (progressText && message) {
+                    progressText.textContent = message;
+                    progressText.style.display = 'block';
+                }
+                
+                console.log(`📊 Progress [${elementId}]: ${percentage}% - ${message || 'No message'}`);
+            } catch (error) {
+                console.warn(`Progress update error for ${elementId}:`, error);
+            }
+        }
+
+        // Hide progress bar
+        function hideProgressBar(elementId, delay = 0) {
+            setTimeout(() => {
+                try {
+                    const progressBar = document.getElementById(elementId);
+                    const progressText = document.getElementById(elementId + '-text');
+                    
+                    if (progressBar) {
+                        progressBar.style.display = 'none';
+                    }
+                    if (progressText) {
+                        progressText.style.display = 'none';
+                    }
+                } catch (error) {
+                    console.warn(`Error hiding progress bar ${elementId}:`, error);
+                }
+            }, delay);
+        }
+
+                 // Enhanced status indicator with auto-hide and better styling
+         function showStatusWithTimeout(type, message, timeout = 5000) {
+             showStatus(type, message);
+             
+             // Auto-hide success and info messages after timeout
+             if (type === 'success' || type === 'info') {
+                 setTimeout(() => {
+                     const statusEl = document.getElementById('global-status');
+                     if (statusEl && statusEl.textContent === message) {
+                         statusEl.style.opacity = '0';
+                         setTimeout(() => {
+                             statusEl.innerHTML = '';
+                             statusEl.style.opacity = '1';
+                         }, 300);
+                     }
+                 }, timeout);
+             }
+         }
+
+                   // Global operation state manager
+          const OperationManager = {
+              activeOperations: new Map(),
+              completedOperations: [],
+              
+              start(operationId, description) {
+                  const operation = {
+                      id: operationId,
+                      description: description,
+                      startTime: Date.now(),
+                      status: 'running',
+                      progress: 0,
+                      message: 'Starting...'
+                  };
+                  
+                  this.activeOperations.set(operationId, operation);
+                  console.log(`🚀 Operation started: ${operationId} - ${description}`);
+                  this.updateGlobalIndicator();
+                  this.updateDashboard();
+              },
+              
+              updateProgress(operationId, progress, message) {
+                  const operation = this.activeOperations.get(operationId);
+                  if (operation) {
+                      operation.progress = progress;
+                      operation.message = message;
+                      this.updateDashboard();
+                  }
+              },
+              
+              finish(operationId, success = true, message = '') {
+                  const operation = this.activeOperations.get(operationId);
+                  if (operation) {
+                      operation.status = success ? 'completed' : 'failed';
+                      operation.endTime = Date.now();
+                      operation.message = message;
+                      operation.duration = operation.endTime - operation.startTime;
+                      
+                      // Move to completed operations
+                      this.completedOperations.unshift(operation);
+                      this.activeOperations.delete(operationId);
+                      
+                      // Keep only last 10 completed operations
+                      if (this.completedOperations.length > 10) {
+                          this.completedOperations = this.completedOperations.slice(0, 10);
+                      }
+                  }
+                  
+                  console.log(`${success ? '✅' : '❌'} Operation ${success ? 'completed' : 'failed'}: ${operationId} - ${message}`);
+                  this.updateGlobalIndicator();
+                  this.updateDashboard();
+              },
+              
+              updateGlobalIndicator() {
+                  const hasActiveOperations = this.activeOperations.size > 0;
+                  const indicator = document.getElementById('global-operation-indicator');
+                  
+                  if (!indicator && hasActiveOperations) {
+                      // Create global operation indicator
+                      const div = document.createElement('div');
+                      div.id = 'global-operation-indicator';
+                      div.style.cssText = `
+                          position: fixed;
+                          top: 10px;
+                          left: 50%;
+                          transform: translateX(-50%);
+                          background: linear-gradient(135deg, var(--primary), var(--accent));
+                          color: white;
+                          padding: 8px 16px;
+                          border-radius: 20px;
+                          font-size: 0.9rem;
+                          font-weight: 600;
+                          z-index: 10000;
+                          box-shadow: var(--shadow);
+                          animation: pulse 2s infinite;
+                          cursor: pointer;
+                      `;
+                      div.onclick = () => toggleStatusDashboard();
+                      document.body.appendChild(div);
+                      
+                      // Add pulse animation
+                      if (!document.getElementById('operation-animations')) {
+                          const style = document.createElement('style');
+                          style.id = 'operation-animations';
+                          style.textContent = `
+                              @keyframes pulse {
+                                  0%, 100% { opacity: 1; }
+                                  50% { opacity: 0.7; }
+                              }
+                          `;
+                          document.head.appendChild(style);
+                      }
+                  }
+                  
+                  if (indicator) {
+                      if (hasActiveOperations) {
+                          indicator.textContent = `🔄 ${this.activeOperations.size} operation(s) in progress... (click to view)`;
+                          indicator.style.display = 'block';
+                      } else {
+                          indicator.style.display = 'none';
+                      }
+                  }
+              },
+              
+              updateDashboard() {
+                  const dashboard = document.getElementById('status-dashboard');
+                  const container = document.getElementById('active-operations');
+                  
+                  if (!container) return;
+                  
+                  // Show dashboard if there are active operations
+                  if (dashboard && this.activeOperations.size > 0) {
+                      dashboard.style.display = 'block';
+                  }
+                  
+                  // Clear and rebuild operations display
+                  container.innerHTML = '';
+                  
+                  // Add active operations
+                  this.activeOperations.forEach(operation => {
+                      const div = document.createElement('div');
+                      div.className = 'operation-item';
+                      div.style.cssText = `
+                          background: var(--surface-light);
+                          padding: 15px;
+                          border-radius: var(--border-radius-sm);
+                          border-left: 4px solid var(--accent);
+                      `;
+                      
+                      const elapsed = Math.floor((Date.now() - operation.startTime) / 1000);
+                      div.innerHTML = `
+                          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                              <strong>🔄 ${operation.description}</strong>
+                              <span style="font-size: 0.8rem; opacity: 0.7;">${elapsed}s</span>
+                          </div>
+                          <div class="progress-bar" style="margin-bottom: 8px;">
+                              <div class="progress-fill" style="width: ${operation.progress}%; background: var(--accent);"></div>
+                          </div>
+                          <div style="font-size: 0.9rem; opacity: 0.8;">${operation.message}</div>
+                      `;
+                      container.appendChild(div);
+                  });
+                  
+                  // Add recent completed operations
+                  this.completedOperations.slice(0, 3).forEach(operation => {
+                      const div = document.createElement('div');
+                      div.className = 'operation-item completed';
+                      div.style.cssText = `
+                          background: var(--surface);
+                          padding: 12px;
+                          border-radius: var(--border-radius-sm);
+                          border-left: 4px solid ${operation.status === 'completed' ? 'var(--success)' : 'var(--danger)'};
+                          opacity: 0.7;
+                      `;
+                      
+                      const duration = Math.floor(operation.duration / 1000);
+                      const icon = operation.status === 'completed' ? '✅' : '❌';
+                      
+                      div.innerHTML = `
+                          <div style="display: flex; justify-content: space-between; align-items: center;">
+                              <strong>${icon} ${operation.description}</strong>
+                              <span style="font-size: 0.8rem; opacity: 0.7;">${duration}s</span>
+                          </div>
+                          <div style="font-size: 0.9rem; opacity: 0.8; margin-top: 4px;">${operation.message}</div>
+                      `;
+                      container.appendChild(div);
+                  });
+              }
+          };
+
+          // Dashboard control functions
+          function toggleStatusDashboard() {
+              const dashboard = document.getElementById('status-dashboard');
+              if (dashboard) {
+                  const isVisible = dashboard.style.display !== 'none';
+                  dashboard.style.display = isVisible ? 'none' : 'block';
+              }
+          }
+
+                     function clearCompletedOperations() {
+               OperationManager.completedOperations = [];
+               OperationManager.updateDashboard();
+               showStatus('info', 'Completed operations cleared from dashboard');
+           }
+
+           // Global error boundary system
+           window.addEventListener('error', function(event) {
+               console.error('🚨 Global JavaScript Error:', event.error);
+               showStatus('error', `JavaScript Error: ${event.error.message} (Check console for details)`);
+               
+               // Log additional context
+               console.error('Error details:', {
+                   message: event.error.message,
+                   filename: event.filename,
+                   lineno: event.lineno,
+                   colno: event.colno,
+                   stack: event.error.stack
+               });
+           });
+
+           window.addEventListener('unhandledrejection', function(event) {
+               console.error('🚨 Unhandled Promise Rejection:', event.reason);
+               showStatus('error', `Promise Error: ${event.reason} (Check console for details)`);
+               
+               // Prevent the default behavior (console error)
+               event.preventDefault();
+           });
+
+                       // Enhanced function wrapper for critical operations
+            function safeExecute(functionName, fn, ...args) {
+                try {
+                    console.log(`🔧 Executing: ${functionName}`);
+                    const result = fn.apply(this, args);
+                    
+                    // Handle promises
+                    if (result && typeof result.catch === 'function') {
+                        return result.catch(error => {
+                            console.error(`❌ Error in ${functionName}:`, error);
+                            showStatus('error', `${functionName} failed: ${error.message}`);
+                            throw error;
+                        });
+                    }
+                    
+                    console.log(`✅ ${functionName} completed successfully`);
+                    return result;
+                    
+                } catch (error) {
+                    console.error(`❌ Error in ${functionName}:`, error);
+                    showStatus('error', `${functionName} failed: ${error.message}`);
+                    throw error;
+                }
+            }
+
+            // Performance monitoring system
+            const PerformanceMonitor = {
+                operations: new Map(),
+                
+                start(operationName) {
+                    this.operations.set(operationName, {
+                        startTime: performance.now(),
+                        startMemory: performance.memory ? performance.memory.usedJSHeapSize : 0
+                    });
+                },
+                
+                end(operationName) {
+                    const operation = this.operations.get(operationName);
+                    if (operation) {
+                        const endTime = performance.now();
+                        const duration = endTime - operation.startTime;
+                        const endMemory = performance.memory ? performance.memory.usedJSHeapSize : 0;
+                        const memoryDelta = endMemory - operation.startMemory;
+                        
+                        console.log(`⚡ Performance [${operationName}]: ${duration.toFixed(2)}ms, Memory: ${(memoryDelta / 1024 / 1024).toFixed(2)}MB`);
+                        
+                        this.operations.delete(operationName);
+                        return { duration, memoryDelta };
+                    }
+                }
+            };
+
+            // Application health check system
+            function performHealthCheck() {
+                const healthReport = {
+                    timestamp: new Date().toISOString(),
+                    dataIntegrity: true,
+                    functionsAvailable: true,
+                    storageAvailable: true,
+                    errors: []
+                };
+                
+                try {
+                    // Check data integrity
+                    if (!currentData || !currentData.Categories || !Array.isArray(currentData.Categories)) {
+                        healthReport.dataIntegrity = false;
+                        healthReport.errors.push('Data structure is invalid');
+                    }
+                    
+                    // Check critical functions
+                    const criticalFunctions = ['saveData', 'loadSavedData', 'updateDataStats', 'updatePreview', 'showStatus'];
+                    criticalFunctions.forEach(funcName => {
+                        if (typeof window[funcName] !== 'function') {
+                            healthReport.functionsAvailable = false;
+                            healthReport.errors.push(`Critical function missing: ${funcName}`);
+                        }
+                    });
+                    
+                    // Check storage availability
+                    try {
+                        localStorage.setItem('health-check', 'test');
+                        localStorage.removeItem('health-check');
+                    } catch (e) {
+                        healthReport.storageAvailable = false;
+                        healthReport.errors.push('localStorage not available');
+                    }
+                    
+                    console.log('🏥 Health Check:', healthReport);
+                    
+                    if (healthReport.errors.length === 0) {
+                        showStatus('success', 'Application health check passed ✅');
+                    } else {
+                        showStatus('warning', `Health check found ${healthReport.errors.length} issue(s): ${healthReport.errors.join(', ')}`);
+                    }
+                    
+                    return healthReport;
+                    
+                } catch (error) {
+                    console.error('Health check failed:', error);
+                    showStatus('error', `Health check failed: ${error.message}`);
+                    return { ...healthReport, errors: [...healthReport.errors, error.message] };
+                }
+            }
 
         // Function to check if data is too large for GitHub
         function checkDataSize(dataStr) {
@@ -1914,10 +2350,14 @@
         // Function to export current data to GitHub
         async function exportToGitHub() {
             console.log('📤 exportToGitHub() called');
+            
             if (!currentData || !currentData.Categories) {
                 showGitHubStatus('error', 'No data to export! Please load or create some categories first.');
                 return;
             }
+
+            const operationId = 'github-export-' + Date.now();
+            OperationManager.start(operationId, 'GitHub Export');
 
             try {
                 showGitHubStatus('info', 'Preparing current data for upload...');
@@ -1936,7 +2376,7 @@
                 const sizeCheck = checkDataSize(dataStr);
                 console.log(`📤 Data size: ${sizeCheck.sizeMB}MB`);
                 
-                if (sizeCheck.toLarge) {
+                if (sizeCheck.tooLarge) {
                     showGitHubStatus('error', `Data too large (${sizeCheck.sizeMB}MB). GitHub limit is ${sizeCheck.maxSizeMB}MB. Consider using zip compression or splitting the data.`);
                     return;
                 }
@@ -1956,10 +2396,12 @@
                 }
                 
                 await uploadToGitHub(dataStr, 'playlist.json');
+                OperationManager.finish(operationId, true, 'Export completed successfully');
                 
             } catch (error) {
                 console.error('GitHub export preparation error:', error);
                 showGitHubStatus('error', `Failed to prepare data for upload: ${error.message}`);
+                OperationManager.finish(operationId, false, error.message);
             }
         }
 
@@ -2206,6 +2648,19 @@
             <h1>📁 Playlist Categories Manager</h1>
             <p class="subtitle">Manage content in Categories structure with Movies, TV Series, and Live TV</p>
         </header>
+
+        <!-- Global Status Dashboard -->
+        <div id="status-dashboard" class="card" style="margin-bottom: 20px; display: none;">
+            <h3>📊 Operations Dashboard</h3>
+            <div id="active-operations" class="status-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px; margin-top: 15px;">
+                <!-- Active operations will be populated here -->
+            </div>
+            <div class="form-group" style="margin-top: 15px;">
+                <button class="btn btn-secondary btn-small" onclick="toggleStatusDashboard()">Hide Dashboard</button>
+                <button class="btn btn-secondary btn-small" onclick="clearCompletedOperations()">Clear Completed</button>
+                <button class="btn btn-secondary btn-small" onclick="performHealthCheck()">🏥 Health Check</button>
+            </div>
+        </div>
 
         <!-- TMDB Generator Tab -->
         <div id="tmdb-generator" class="tab-content active">
@@ -3117,6 +3572,10 @@
                 <div class="nav-icon">🗂️</div>
                 <div class="nav-label">Data</div>
             </div>
+            <div class="nav-item" onclick="toggleStatusDashboard()" role="button" tabindex="0" aria-label="Status Dashboard">
+                <div class="nav-icon">📊</div>
+                <div class="nav-label">Status</div>
+            </div>
         </div>
     </nav>
 
@@ -3318,15 +3777,50 @@ const TWOTWOEMBED_BASE = 'https://2embed.cc/embed';
 
                          // Initialize
         document.addEventListener('DOMContentLoaded', async function() {
-            showStatus('info', 'Loading saved data...');
-            await loadSavedData();
-                        updateDataStats();
-            updatePreview();
-            updateAutoEmbedStatus();
-            updateApiDropdown(); // Initialize API dropdown
-            handleSearchTypeChange(); // Initialize search type
-            refreshContentCheckboxes();
-            showStatus('success', 'Application loaded successfully!');
+            const initOperationId = 'app-initialization-' + Date.now();
+            OperationManager.start(initOperationId, 'Application Initialization');
+            
+            try {
+                OperationManager.updateProgress(initOperationId, 10, 'Loading saved data...');
+                showStatus('info', 'Loading saved data...');
+                await loadSavedData();
+                
+                OperationManager.updateProgress(initOperationId, 30, 'Updating data statistics...');
+                updateDataStats();
+                
+                OperationManager.updateProgress(initOperationId, 50, 'Updating preview...');
+                updatePreview();
+                
+                OperationManager.updateProgress(initOperationId, 60, 'Configuring auto-embed status...');
+                updateAutoEmbedStatus();
+                
+                OperationManager.updateProgress(initOperationId, 70, 'Initializing API dropdown...');
+                updateApiDropdown(); // Initialize API dropdown
+                
+                OperationManager.updateProgress(initOperationId, 80, 'Setting up search interface...');
+                handleSearchTypeChange(); // Initialize search type
+                
+                OperationManager.updateProgress(initOperationId, 90, 'Refreshing content checkboxes...');
+                refreshContentCheckboxes();
+                
+                OperationManager.updateProgress(initOperationId, 95, 'Running health check...');
+                // Run initial health check
+                setTimeout(() => performHealthCheck(), 1000);
+                
+                OperationManager.updateProgress(initOperationId, 100, 'Application ready!');
+                showStatus('success', 'Application loaded successfully! 🚀');
+                OperationManager.finish(initOperationId, true, 'Application initialization completed');
+                
+                // Show welcome message with features
+                setTimeout(() => {
+                    showStatus('info', '💡 New Features: Enhanced progress tracking, operation dashboard, and comprehensive error handling!');
+                }, 2000);
+                
+            } catch (error) {
+                console.error('Application initialization failed:', error);
+                showStatus('error', `Application initialization failed: ${error.message}`);
+                OperationManager.finish(initOperationId, false, error.message);
+            }
              
                          // Add event listeners for auto-embed configuration
             const autoEmbedElements = [
@@ -4910,15 +5404,20 @@ const TWOTWOEMBED_BASE = 'https://2embed.cc/embed';
         }
 
         async function addManualContent() {
-            const type = document.getElementById('manual-type').value;
-            const title = document.getElementById('manual-title').value.trim();
-            const subcategory = document.getElementById('manual-subcategory').value;
-            const country = document.getElementById('manual-country').value.trim();
-            
-            if (!title) {
-                showStatus('warning', 'Please enter a title');
-                return;
-            }
+            try {
+                showStatus('info', 'Adding manual content...');
+                
+                const type = document.getElementById('manual-type').value;
+                const title = document.getElementById('manual-title').value.trim();
+                const subcategory = document.getElementById('manual-subcategory').value;
+                const country = document.getElementById('manual-country').value.trim();
+                
+                if (!title) {
+                    showStatus('warning', 'Please enter a title');
+                    return;
+                }
+                
+                console.log(`📝 Adding manual ${type}: ${title}`);
 
             // Get servers
             const sourceInputs = document.querySelectorAll('#manual-sources .server-item');
@@ -4989,40 +5488,45 @@ const TWOTWOEMBED_BASE = 'https://2embed.cc/embed';
                 });
             }
 
-            await saveData();
-            updateDataStats();
-            updatePreview();
-            showStatus('success', `${title} added to ${mainCategory} successfully!`);
-            
-            // Clear form
-            document.getElementById('manual-title').value = '';
-            document.getElementById('manual-description').value = '';
-            document.getElementById('manual-image').value = '';
-            document.getElementById('manual-year').value = '';
-            document.getElementById('manual-rating').value = '';
-            document.getElementById('manual-country').value = '';
-            
-            // Reset sources to one empty item
-            document.getElementById('manual-sources').innerHTML = `
-                <div class="server-item">
-                    <input type="text" placeholder="Source Name" class="source-name">
-                    <input type="url" placeholder="Video URL" class="source-url">
-                    <select class="source-type">
-                        <option value="video">Direct Video</option>
-                        <option value="embed">Embedded</option>
-                        <option value="youtube">YouTube</option>
-                        <option value="live">Live Stream</option>
-                    </select>
-                    <select class="source-quality">
-                        <option value="1080p">1080p</option>
-                        <option value="720p">720p</option>
-                        <option value="480p">480p</option>
-                        <option value="Auto">Auto</option>
-                    </select>
-                    <button class="paste-btn" onclick="pasteFromClipboard(this)">📋 Paste</button>
-                    <button class="btn btn-danger btn-small" onclick="removeServer(this)">Remove</button>
-                </div>
-            `;
+                await saveData();
+                updateDataStats();
+                updatePreview();
+                showStatus('success', `${title} added to ${mainCategory} successfully!`);
+                
+                // Clear form
+                document.getElementById('manual-title').value = '';
+                document.getElementById('manual-description').value = '';
+                document.getElementById('manual-image').value = '';
+                document.getElementById('manual-year').value = '';
+                document.getElementById('manual-rating').value = '';
+                document.getElementById('manual-country').value = '';
+                
+                // Reset sources to one empty item
+                document.getElementById('manual-sources').innerHTML = `
+                    <div class="server-item">
+                        <input type="text" placeholder="Source Name" class="source-name">
+                        <input type="url" placeholder="Video URL" class="source-url">
+                        <select class="source-type">
+                            <option value="video">Direct Video</option>
+                            <option value="embed">Embedded</option>
+                            <option value="youtube">YouTube</option>
+                            <option value="live">Live Stream</option>
+                        </select>
+                        <select class="source-quality">
+                            <option value="1080p">1080p</option>
+                            <option value="720p">720p</option>
+                            <option value="480p">480p</option>
+                            <option value="Auto">Auto</option>
+                        </select>
+                        <button class="paste-btn" onclick="pasteFromClipboard(this)">📋 Paste</button>
+                        <button class="btn btn-danger btn-small" onclick="removeServer(this)">Remove</button>
+                    </div>
+                `;
+                
+            } catch (error) {
+                console.error('Error adding manual content:', error);
+                showStatus('error', `Failed to add content: ${error.message}`);
+            }
         }
 
         // Bulk operations
@@ -5032,57 +5536,119 @@ const TWOTWOEMBED_BASE = 'https://2embed.cc/embed';
             const pages = parseInt(document.getElementById('bulk-pages').value);
             const skipDuplicates = document.getElementById('bulk-skip-duplicates').checked;
             
-            showLoading('bulk-loading', true);
+            const operationId = 'bulk-generate-' + Date.now();
+            OperationManager.start(operationId, `Bulk Generate ${type} (${pages} pages)`);
+            
+            try {
+                showLoading('bulk-loading', true);
+                updateProgressBar('bulk', 0, 'Starting bulk generation...');
             
             let generated = 0;
             let skipped = 0;
+            let errors = 0;
+            const startTime = Date.now();
             
             for (let page = 1; page <= pages; page++) {
-                const results = await fetchTMDB(`/discover/${type}`, {
-                    primary_release_year: type === 'movie' ? year : undefined,
-                    first_air_date_year: type === 'tv' ? year : undefined,
-                    page: page,
-                    sort_by: 'popularity.desc'
-                });
-                
-                if (!results?.results) break;
-                
-                for (const item of results.results) {
-                    // Check for duplicates
-                    if (skipDuplicates && isDuplicate(item.id, type)) {
-                        skipped++;
-                        continue;
+                try {
+                    updateProgressBar('bulk', ((page - 1) / pages) * 100, `Fetching page ${page}/${pages}...`);
+                    
+                    const results = await fetchTMDB(`/discover/${type}`, {
+                        primary_release_year: type === 'movie' ? year : undefined,
+                        first_air_date_year: type === 'tv' ? year : undefined,
+                        page: page,
+                        sort_by: 'popularity.desc'
+                    });
+                    
+                    if (!results?.results) {
+                        console.warn(`No results for page ${page}`);
+                        break;
                     }
                     
-                    try {
-                        if (type === 'movie') {
-                            await generateMovie(item.id);
-                        } else {
-                            await generateSeries(item.id);
-                        }
-                        generated++;
-                    } catch (error) {
-                        console.error(`Error generating ${type} ${item.id}:`, error);
-                    }
+                    const totalItems = results.results.length;
+                    let processedItems = 0;
+                    
+                                         for (const item of results.results) {
+                         processedItems++;
+                         const itemProgress = ((page - 1) / pages) * 100 + (processedItems / totalItems) * (100 / pages);
+                         
+                         // Check for duplicates
+                         if (skipDuplicates && isDuplicate(item.id, type)) {
+                             skipped++;
+                             const skipMessage = `Processing ${item.title || item.name} (skipped - duplicate)`;
+                             updateProgressBar('bulk', itemProgress, skipMessage);
+                             OperationManager.updateProgress(operationId, itemProgress, skipMessage);
+                             continue;
+                         }
+                         
+                         try {
+                             const generateMessage = `Generating ${item.title || item.name}...`;
+                             updateProgressBar('bulk', itemProgress, generateMessage);
+                             OperationManager.updateProgress(operationId, itemProgress, generateMessage);
+                             
+                             if (type === 'movie') {
+                                 await generateMovie(item.id);
+                             } else {
+                                 await generateSeries(item.id);
+                             }
+                             generated++;
+                         } catch (error) {
+                             console.error(`Error generating ${type} ${item.id}:`, error);
+                             errors++;
+                         }
+                     }
+                    
+                    // Update status with current progress
+                    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+                    const avgTimePerPage = elapsed / page;
+                    const estimatedTotal = avgTimePerPage * pages;
+                    const eta = Math.max(0, estimatedTotal - elapsed);
+                    
+                    document.getElementById('bulk-status').innerHTML = `
+                        <div class="status info">
+                            Page ${page}/${pages} - Generated: ${generated}, Skipped: ${skipped}, Errors: ${errors}
+                            <br><small>ETA: ${Math.floor(eta / 60)}m ${eta % 60}s</small>
+                        </div>
+                    `;
+                    
+                    // Small delay to prevent API rate limiting
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                    
+                } catch (pageError) {
+                    console.error(`Error processing page ${page}:`, pageError);
+                    errors++;
+                    updateProgressBar('bulk', (page / pages) * 100, `Error on page ${page}: ${pageError.message}`);
                 }
-                
-                // Update progress
-                const progress = (page / pages) * 100;
-                document.getElementById('bulk-progress').style.width = `${progress}%`;
-                document.getElementById('bulk-status').innerHTML = `
-                    <div class="status info">
-                        Page ${page}/${pages} - Generated: ${generated}, Skipped: ${skipped}
-                    </div>
-                `;
-                
-                // Small delay to prevent API rate limiting
-                await new Promise(resolve => setTimeout(resolve, 100));
             }
             
-                         showLoading('bulk-loading', false);
-             updateDataStats();
-             updatePreview();
-             showStatus('success', `Bulk generation complete! Generated: ${generated} items with multi-server sources (VidSrc + VidJoy) matching existing app structure, Skipped: ${skipped}`);
+            showLoading('bulk-loading', false);
+            updateProgressBar('bulk', 100, 'Bulk generation completed!');
+            
+            // Final statistics
+            const totalTime = Math.floor((Date.now() - startTime) / 1000);
+            const successRate = generated > 0 ? ((generated / (generated + errors)) * 100).toFixed(1) : 0;
+            
+            updateDataStats();
+            updatePreview();
+            
+            const summaryMessage = `Bulk generation complete! Generated: ${generated}, Skipped: ${skipped}, Errors: ${errors} (${successRate}% success rate) in ${Math.floor(totalTime / 60)}m ${totalTime % 60}s`;
+            showStatus('success', summaryMessage);
+            
+            // Update final status
+            document.getElementById('bulk-status').innerHTML = `
+                <div class="status success">
+                    ${summaryMessage}
+                </div>
+            `;
+            
+            // Hide progress bar after delay
+            hideProgressBar('bulk', 3000);
+            OperationManager.finish(operationId, true, summaryMessage);
+            
+            } catch (error) {
+                console.error('Bulk generation error:', error);
+                showStatus('error', `Bulk generation failed: ${error.message}`);
+                OperationManager.finish(operationId, false, error.message);
+            }
         }
 
         async function generateByGenre() {
@@ -5094,11 +5660,12 @@ const TWOTWOEMBED_BASE = 'https://2embed.cc/embed';
             console.log('🎬 Starting genre generation:', { genreId, count, contentType, year });
             console.log('📊 Current data structure:', currentData);
             
+            const operationId = 'genre-generate-' + Date.now();
+            OperationManager.start(operationId, `Generate by Genre (${count} items)`);
+            
             // Show loading and progress
             showLoading('genre-loading', true);
-            document.getElementById('genre-progress').style.display = 'block';
-            document.getElementById('genre-progress-fill').style.width = '0%';
-            document.getElementById('genre-progress-text').textContent = 'Fetching content...';
+            updateProgressBar('genre-progress', 0, 'Initializing genre generation...');
             
             try {
                 let totalGenerated = 0;
@@ -5169,10 +5736,9 @@ const TWOTWOEMBED_BASE = 'https://2embed.cc/embed';
                         const currentItemIndex = i * (contentType === 'both' ? Math.ceil(count / 2) : count) + j + 1;
                         const progressPercent = (currentItemIndex / totalItemsToProcess) * 100;
                         
-                        // Update progress
-                        document.getElementById('genre-progress-fill').style.width = `${progressPercent}%`;
-                        document.getElementById('genre-progress-text').textContent = 
-                            `Processing ${type === 'movie' ? 'movies' : 'TV series'}: ${j + 1}/${itemsToProcess.length}`;
+                        // Update progress with enhanced tracking
+                        updateProgressBar('genre-progress', progressPercent, 
+                            `Processing ${type === 'movie' ? 'movies' : 'TV series'}: ${j + 1}/${itemsToProcess.length} - ${item.title || item.name}`);
                         
                         try {
                             // Check for duplicate by title instead of ID
@@ -5199,8 +5765,7 @@ const TWOTWOEMBED_BASE = 'https://2embed.cc/embed';
                 }
                 
                 // Complete progress
-                document.getElementById('genre-progress-fill').style.width = '100%';
-                document.getElementById('genre-progress-text').textContent = 'Complete!';
+                updateProgressBar('genre-progress', 100, 'Genre generation completed!');
                 
                 console.log('🎉 Genre generation complete! Total generated:', totalGenerated);
                 console.log('📊 Final data structure:', currentData);
@@ -5213,16 +5778,19 @@ const TWOTWOEMBED_BASE = 'https://2embed.cc/embed';
                 const typeText = contentType === 'both' ? 'movies and TV series' : 
                                 contentType === 'movie' ? 'movies' : 'TV series';
                 const yearText = year ? ` from ${year}` : '';
-                showStatus('success', `Generated ${totalGenerated} ${typeText} from selected genre${yearText}!`);
+                const successMessage = `Generated ${totalGenerated} ${typeText} from selected genre${yearText}!`;
+                showStatus('success', successMessage);
+                OperationManager.finish(operationId, true, successMessage);
                 
             } catch (error) {
                 console.error('Genre generation failed:', error);
                 showStatus('error', 'Genre generation failed: ' + error.message);
+                OperationManager.finish(operationId, false, error.message);
             } finally {
                 // Hide loading and progress after a delay
                 setTimeout(() => {
                     showLoading('genre-loading', false);
-                    document.getElementById('genre-progress').style.display = 'none';
+                    hideProgressBar('genre-progress', 0);
                 }, 2000);
             }
         }
@@ -5516,27 +6084,65 @@ const TWOTWOEMBED_BASE = 'https://2embed.cc/embed';
         }
         
         function updateImportProgress(percent, processed, message, category, speed = 0, eta = 0) {
-            // Update progress bar
-            document.getElementById('import-progress-fill').style.width = `${percent}%`;
-            
-            // Update progress text
-            document.getElementById('import-progress-text').textContent = `${percent}% - ${message}`;
-            
-            // Update stats
-            document.getElementById('import-processed').textContent = processed.toLocaleString();
-            document.getElementById('import-current-category').textContent = category;
-            
-            if (speed > 0) {
-                document.getElementById('import-speed').textContent = Math.round(speed);
-                
-                if (eta > 0) {
-                    const minutes = Math.floor(eta / 60);
-                    const seconds = eta % 60;
-                    document.getElementById('import-eta').textContent = 
-                        minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
-                } else {
-                    document.getElementById('import-eta').textContent = 'Almost done!';
+            try {
+                // Update progress bar with enhanced styling
+                const progressFill = document.getElementById('import-progress-fill');
+                if (progressFill) {
+                    progressFill.style.width = `${Math.min(100, Math.max(0, percent))}%`;
+                    progressFill.style.transition = 'width 0.2s ease';
+                    
+                    // Color coding based on progress
+                    if (percent >= 100) {
+                        progressFill.style.background = 'var(--success)';
+                    } else if (percent >= 75) {
+                        progressFill.style.background = 'linear-gradient(90deg, var(--accent), var(--primary))';
+                    } else {
+                        progressFill.style.background = 'var(--primary)';
+                    }
                 }
+                
+                // Update progress text with enhanced formatting
+                const progressText = document.getElementById('import-progress-text');
+                if (progressText) {
+                    progressText.textContent = `${percent.toFixed(1)}% - ${message}`;
+                }
+                
+                // Update stats with error handling
+                const processedEl = document.getElementById('import-processed');
+                if (processedEl) {
+                    processedEl.textContent = processed.toLocaleString();
+                }
+                
+                const categoryEl = document.getElementById('import-current-category');
+                if (categoryEl) {
+                    categoryEl.textContent = category || 'Processing...';
+                }
+                
+                // Update speed and ETA with better formatting
+                if (speed > 0) {
+                    const speedEl = document.getElementById('import-speed');
+                    if (speedEl) {
+                        speedEl.textContent = speed >= 1000 ? 
+                            `${(speed / 1000).toFixed(1)}k` : 
+                            Math.round(speed);
+                    }
+                    
+                    const etaEl = document.getElementById('import-eta');
+                    if (etaEl) {
+                        if (eta > 0) {
+                            const minutes = Math.floor(eta / 60);
+                            const seconds = eta % 60;
+                            etaEl.textContent = minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
+                        } else {
+                            etaEl.textContent = 'Almost done!';
+                        }
+                    }
+                }
+                
+                console.log(`📊 Import Progress: ${percent.toFixed(1)}% - ${message} (${processed.toLocaleString()} processed)`);
+                
+            } catch (error) {
+                console.warn('Import progress update error:', error);
             }
         }
         function cancelImport() {
@@ -6768,33 +7374,128 @@ Proceed with removal?`;
         }
 
         function showStatus(type, message) {
-            // Create or update status element
-            let statusEl = document.getElementById('global-status');
-            if (!statusEl) {
-                statusEl = document.createElement('div');
-                statusEl.id = 'global-status';
-                statusEl.style.position = 'fixed';
-                statusEl.style.top = '20px';
-                statusEl.style.right = '20px';
-                statusEl.style.zIndex = '9999';
-                statusEl.style.maxWidth = '400px';
-                document.body.appendChild(statusEl);
-            }
-            
-            statusEl.innerHTML = `<div class="status ${type}">${message}</div>`;
-            
-            // Auto-hide after 5 seconds
-            setTimeout(() => {
-                if (statusEl.parentNode) {
-                    statusEl.parentNode.removeChild(statusEl);
+            try {
+                // Create or update status element
+                let statusEl = document.getElementById('global-status');
+                if (!statusEl) {
+                    statusEl = document.createElement('div');
+                    statusEl.id = 'global-status';
+                    statusEl.style.cssText = `
+                        position: fixed;
+                        top: 20px;
+                        right: 20px;
+                        z-index: 9999;
+                        max-width: 400px;
+                        opacity: 1;
+                        transition: opacity 0.3s ease;
+                    `;
+                    document.body.appendChild(statusEl);
                 }
-            }, 5000);
+                
+                // Add timestamp for better tracking
+                const timestamp = new Date().toLocaleTimeString();
+                const iconMap = {
+                    'success': '✅',
+                    'error': '❌',
+                    'warning': '⚠️',
+                    'info': 'ℹ️'
+                };
+                const icon = iconMap[type] || 'ℹ️';
+                
+                statusEl.innerHTML = `<div class="status ${type}" style="position: relative; animation: slideIn 0.3s ease;">
+                    <strong>${icon} ${type.toUpperCase()}</strong><br>
+                    ${message}
+                    <small style="opacity: 0.7; display: block; margin-top: 5px;">${timestamp}</small>
+                </div>`;
+                
+                // Add slide-in animation if not already defined
+                if (!document.getElementById('status-animations')) {
+                    const style = document.createElement('style');
+                    style.id = 'status-animations';
+                    style.textContent = `
+                        @keyframes slideIn {
+                            from { transform: translateX(100%); opacity: 0; }
+                            to { transform: translateX(0); opacity: 1; }
+                        }
+                        @keyframes slideOut {
+                            from { transform: translateX(0); opacity: 1; }
+                            to { transform: translateX(100%); opacity: 0; }
+                        }
+                    `;
+                    document.head.appendChild(style);
+                }
+                
+                // Clear any existing timeout
+                if (statusEl.hideTimeout) {
+                    clearTimeout(statusEl.hideTimeout);
+                }
+                
+                // Auto-hide with different delays based on type
+                const hideDelay = type === 'error' ? 10000 : type === 'warning' ? 7000 : 5000;
+                statusEl.hideTimeout = setTimeout(() => {
+                    if (statusEl && statusEl.parentNode) {
+                        statusEl.style.animation = 'slideOut 0.3s ease';
+                        setTimeout(() => {
+                            if (statusEl.parentNode) {
+                                statusEl.parentNode.removeChild(statusEl);
+                            }
+                        }, 300);
+                    }
+                }, hideDelay);
+                
+                console.log(`📢 Status [${type}]: ${message}`);
+                
+            } catch (error) {
+                console.error('Error showing status:', error);
+                // Fallback to alert for critical errors
+                if (type === 'error') {
+                    alert(`Error: ${message}`);
+                }
+            }
         }
 
         function showLoading(elementId, show) {
-            const element = document.getElementById(elementId);
-            if (element) {
-                element.style.display = show ? 'inline-block' : 'none';
+            try {
+                const element = document.getElementById(elementId);
+                if (element) {
+                    element.style.display = show ? 'inline-block' : 'none';
+                    
+                    // Add loading animation if showing
+                    if (show) {
+                        element.style.animation = 'spin 1s linear infinite';
+                        
+                        // Add spinner animation if not already defined
+                        if (!document.getElementById('loading-animations')) {
+                            const style = document.createElement('style');
+                            style.id = 'loading-animations';
+                            style.textContent = `
+                                @keyframes spin {
+                                    0% { transform: rotate(0deg); }
+                                    100% { transform: rotate(360deg); }
+                                }
+                                .loading {
+                                    border: 2px solid var(--surface-light);
+                                    border-top: 2px solid var(--primary);
+                                    border-radius: 50%;
+                                    width: 16px;
+                                    height: 16px;
+                                    display: inline-block;
+                                    vertical-align: middle;
+                                    margin-left: 8px;
+                                }
+                            `;
+                            document.head.appendChild(style);
+                        }
+                    } else {
+                        element.style.animation = '';
+                    }
+                    
+                    console.log(`🔄 Loading indicator [${elementId}]: ${show ? 'shown' : 'hidden'}`);
+                } else {
+                    console.warn(`⚠️ Loading element not found: ${elementId}`);
+                }
+            } catch (error) {
+                console.error(`Error controlling loading indicator ${elementId}:`, error);
             }
         }
 

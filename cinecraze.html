@@ -1389,6 +1389,31 @@
             token: ''
         };
 
+        // Function to show GitHub status messages (moved to top to avoid dependency issues)
+        function showGitHubStatus(type, message) {
+            console.log(`📢 showGitHubStatus(${type}, "${message}") called`);
+            const statusDiv = document.getElementById('github-status');
+            if (statusDiv) {
+                statusDiv.className = `github-status ${type}`;
+                statusDiv.textContent = message;
+                statusDiv.style.display = 'block';
+                
+                // Auto-hide after 8 seconds for info/success, 12 seconds for errors
+                const hideDelay = (type === 'error' || type === 'warning') ? 12000 : 8000;
+                setTimeout(() => {
+                    statusDiv.style.display = 'none';
+                }, hideDelay);
+                console.log(`✅ Status message displayed: ${message}`);
+            } else {
+                console.warn('❌ GitHub status div not found');
+                console.log(`[${type.toUpperCase()}] ${message}`);
+                // Fallback: show alert for critical messages
+                if (type === 'error') {
+                    alert(`Error: ${message}`);
+                }
+            }
+        }
+
         // Check if JSZip is available
         function isJSZipAvailable() {
             return typeof JSZip !== 'undefined' && JSZip;
@@ -2069,30 +2094,7 @@
             }
         }
 
-        // Function to show GitHub status messages
-        function showGitHubStatus(type, message) {
-            console.log(`📢 showGitHubStatus(${type}, "${message}") called`);
-            const statusDiv = document.getElementById('github-status');
-            if (statusDiv) {
-                statusDiv.className = `github-status ${type}`;
-                statusDiv.textContent = message;
-                statusDiv.style.display = 'block';
-                
-                // Auto-hide after 8 seconds for info/success, 12 seconds for errors
-                const hideDelay = (type === 'error' || type === 'warning') ? 12000 : 8000;
-                setTimeout(() => {
-                    statusDiv.style.display = 'none';
-                }, hideDelay);
-                console.log(`✅ Status message displayed: ${message}`);
-            } else {
-                console.warn('❌ GitHub status div not found');
-                console.log(`[${type.toUpperCase()}] ${message}`);
-                // Fallback: show alert for critical messages
-                if (type === 'error') {
-                    alert(`Error: ${message}`);
-                }
-            }
-        }
+
 
         // Function to show GitHub upload help
         function showGitHubHelp() {

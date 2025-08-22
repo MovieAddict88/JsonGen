@@ -1965,12 +1965,13 @@
 
         // Function to debug current data
         function debugCurrentData() {
-            console.log('🔍 debugCurrentData() called');
-            console.log('🔍 DEBUG: Current Data Structure');
-            console.log('='.repeat(50));
-            console.log('📊 currentData exists:', !!currentData);
-            console.log('📊 currentData.Categories exists:', !!(currentData && currentData.Categories));
-            console.log('📊 Categories count:', currentData?.Categories?.length || 0);
+            try {
+                console.log('🔍 debugCurrentData() called');
+                console.log('🔍 DEBUG: Current Data Structure');
+                console.log('='.repeat(50));
+                console.log('📊 currentData exists:', !!currentData);
+                console.log('📊 currentData.Categories exists:', !!(currentData && currentData.Categories));
+                console.log('📊 Categories count:', currentData?.Categories?.length || 0);
             
             if (currentData && currentData.Categories) {
                 currentData.Categories.forEach(category => {
@@ -1988,64 +1989,89 @@
             console.log('='.repeat(50));
             
             showGitHubStatus('info', `Debug complete! Data size: ${dataSizeMB}MB. Check console for details.`);
+            } catch (error) {
+                console.error('❌ Error in debugCurrentData:', error);
+                alert('Error in debugCurrentData: ' + error.message);
+            }
         }
 
         // Function to debug GitHub configuration
         function debugGitHubConfig() {
-            console.log('⚙️ debugGitHubConfig() called');
-            console.log('🔍 DEBUG: GitHub Configuration');
-            console.log('='.repeat(50));
-            console.log('🔑 Token configured:', !!GITHUB_CONFIG.token);
-            console.log('👤 Owner:', GITHUB_CONFIG.owner);
-            console.log('📦 Repo:', GITHUB_CONFIG.repo);
-            console.log('🌿 Base Branch:', GITHUB_CONFIG.baseBranch);
-            console.log('🌿 Upload Branch:', GITHUB_CONFIG.branch);
-            console.log('📁 Raw Path:', GITHUB_CONFIG.rawPath);
-            console.log('🗜️ Zip Path:', GITHUB_CONFIG.zipPath);
-            console.log('🗜️ Use Zip:', GITHUB_CONFIG.useZip);
-            console.log('📝 Minify:', GITHUB_CONFIG.minify);
-            console.log('📦 JSZip Available:', isJSZipAvailable());
-            console.log('='.repeat(50));
-            
-            showGitHubStatus('info', 'GitHub configuration debug complete. Check console for details.');
+            try {
+                console.log('⚙️ debugGitHubConfig() called');
+                console.log('🔍 DEBUG: GitHub Configuration');
+                console.log('='.repeat(50));
+                console.log('🔑 Token configured:', !!GITHUB_CONFIG.token);
+                console.log('👤 Owner:', GITHUB_CONFIG.owner);
+                console.log('📦 Repo:', GITHUB_CONFIG.repo);
+                console.log('🌿 Base Branch:', GITHUB_CONFIG.baseBranch);
+                console.log('🌿 Upload Branch:', GITHUB_CONFIG.branch);
+                console.log('📁 Raw Path:', GITHUB_CONFIG.rawPath);
+                console.log('🗜️ Zip Path:', GITHUB_CONFIG.zipPath);
+                console.log('🗜️ Use Zip:', GITHUB_CONFIG.useZip);
+                console.log('📝 Minify:', GITHUB_CONFIG.minify);
+                console.log('📦 JSZip Available:', isJSZipAvailable());
+                console.log('='.repeat(50));
+                
+                showGitHubStatus('info', 'GitHub configuration debug complete. Check console for details.');
+            } catch (error) {
+                console.error('❌ Error in debugGitHubConfig:', error);
+                alert('Error in debugGitHubConfig: ' + error.message);
+            }
         }
 
         // Function to set GitHub token from input
         function setGitHubToken() {
-            console.log('🔑 setGitHubToken() called');
-            const tokenInput = document.getElementById('github-token');
-            const token = tokenInput.value.trim();
-            
-            if (!token) {
-                showGitHubStatus('error', 'Please enter a GitHub token.');
-                return;
+            try {
+                console.log('🔑 setGitHubToken() called');
+                const tokenInput = document.getElementById('github-token');
+                if (!tokenInput) {
+                    console.error('❌ github-token input not found');
+                    alert('GitHub token input field not found!');
+                    return;
+                }
+                
+                const token = tokenInput.value.trim();
+                
+                if (!token) {
+                    showGitHubStatus('error', 'Please enter a GitHub token.');
+                    return;
+                }
+                
+                GITHUB_CONFIG.token = token;
+                localStorage.setItem('github_token', token);
+                showGitHubStatus('success', 'GitHub token saved successfully!');
+                tokenInput.value = ''; // Clear the input for security
+            } catch (error) {
+                console.error('❌ Error in setGitHubToken:', error);
+                alert('Error in setGitHubToken: ' + error.message);
             }
-            
-            GITHUB_CONFIG.token = token;
-            localStorage.setItem('github_token', token);
-            showGitHubStatus('success', 'GitHub token saved successfully!');
-            tokenInput.value = ''; // Clear the input for security
         }
 
         // Function to check GitHub token status
         function checkGitHubToken() {
-            console.log('🔍 checkGitHubToken() called');
-            if (GITHUB_CONFIG.token) {
-                showGitHubStatus('success', 'GitHub token is configured and ready to use!');
-            } else {
-                showGitHubStatus('warning', 'GitHub token not configured. Please set your token first.');
+            try {
+                console.log('🔍 checkGitHubToken() called');
+                if (GITHUB_CONFIG.token) {
+                    showGitHubStatus('success', 'GitHub token is configured and ready to use!');
+                } else {
+                    showGitHubStatus('warning', 'GitHub token not configured. Please set your token first.');
+                }
+            } catch (error) {
+                console.error('❌ Error in checkGitHubToken:', error);
+                alert('Error in checkGitHubToken: ' + error.message);
             }
         }
 
         // Function to test JSZip functionality
         async function testJSZip() {
-            console.log('🗜️ testJSZip() called');
-            if (!isJSZipAvailable()) {
-                showGitHubStatus('error', 'JSZip library not loaded. Please refresh the page and try again.');
-                return;
-            }
-            
             try {
+                console.log('🗜️ testJSZip() called');
+                if (!isJSZipAvailable()) {
+                    showGitHubStatus('error', 'JSZip library not loaded. Please refresh the page and try again.');
+                    return;
+                }
+                
                 showGitHubStatus('info', 'Testing JSZip functionality...');
                 const zip = new JSZip();
                 zip.file('test.txt', 'Hello World');
@@ -2057,6 +2083,7 @@
                     showGitHubStatus('error', 'JSZip test failed - no output generated.');
                 }
             } catch (error) {
+                console.error('❌ Error in testJSZip:', error);
                 showGitHubStatus('error', `JSZip test failed: ${error.message}`);
             }
         }
@@ -2088,6 +2115,13 @@
                     const element = document.getElementById(id);
                     console.log(`${element ? '✅' : '❌'} ${id}: ${element ? 'Found' : 'Not found'}`);
                 });
+                
+                // Also test if currentData is accessible
+                console.log('📊 Testing currentData accessibility...');
+                console.log('currentData exists:', typeof currentData !== 'undefined');
+                console.log('currentData value:', currentData);
+                console.log('GITHUB_CONFIG exists:', typeof GITHUB_CONFIG !== 'undefined');
+                console.log('GITHUB_CONFIG value:', GITHUB_CONFIG);
             } catch (error) {
                 console.error('❌ Error in testDOMElements:', error);
                 alert('Error in testDOMElements: ' + error.message);

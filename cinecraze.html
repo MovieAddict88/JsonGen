@@ -2499,7 +2499,7 @@ jobs:
                             </div>
                             <div class="embed-option">
                                 <input type="checkbox" id="auto-upstream" checked>
-                                <label for="auto-upstream">UpStream Auto-Embed</label>
+                                <label for="auto-upstream">VidFast.pro Auto-Embed</label>
                                 <select id="upstream-quality">
                                     <option value="1080p">1080p</option>
                                     <option value="720p">720p</option>
@@ -2674,7 +2674,7 @@ jobs:
         const VIDCLOUD_BASE = 'https://vidcloud.to/embed';
         const STREAMWISH_BASE = 'https://streamwish.to/e';
         const DOODSTREAM_BASE = 'https://doodstream.com/e';
-        const UPSTREAM_BASE = 'https://upstream.to';
+        const UPSTREAM_BASE = 'https://vidfast.pro';
         const STREAMTAPE_BASE = 'https://streamtape.com/e';
         const MIXDROP_BASE = 'https://mixdrop.co/e';
 const GODRIVEPLAYER_BASE = 'https://godriveplayer.com/embed';
@@ -3860,8 +3860,10 @@ const TWOTWOEMBED_BASE = 'https://2embed.cc/embed';
                         match = url.match(/player\.videasy\.net\/tv\/(\d+)\/(\d+)\/(\d+)/);
                         if (match) return match[1];
                         
-                        // UpStream format: https://upstream.to/embed-TMDB_ID
-                        match = url.match(/upstream\.to\/embed-(\d+)/);
+                        // VidFast format: https://vidfast.pro/movie/TMDB_ID or tv/TMDB_ID/SEASON/EPISODE
+                        match = url.match(/vidfast\.pro\/tv\/(\d+)\/(\d+)\/(\d+)/);
+                        if (match) return match[1];
+                        match = url.match(/vidfast\.pro\/movie\/(\d+)/);
                         if (match) return match[1];
                     }
                 }
@@ -7037,16 +7039,16 @@ Proceed with removal?`;
                 });
             }
 
-            // UpStream
+            // VidFast
             if (config.upstream.enabled) {
                 let url;
                 if (contentType === 'tv' && seasonNum && episodeNum) {
-                    url = `${UPSTREAM_BASE}/embed-${tmdbId}s${seasonNum}e${episodeNum}.html`;
+                    url = `${UPSTREAM_BASE}/tv/${tmdbId}/${seasonNum}/${episodeNum}`;
                 } else {
-                    url = `${UPSTREAM_BASE}/embed-${tmdbId}.html`;
+                    url = `${UPSTREAM_BASE}/movie/${tmdbId}`;
                 }
                 sources.push({
-                    name: `UpStream ${config.upstream.quality}`,
+                    name: `VidFast ${config.upstream.quality}`,
                     subtitle1: "", subtitle2: "", url: url
                 });
             }
@@ -7123,7 +7125,7 @@ Proceed with removal?`;
                     server.url.includes('streamtape.com') ||
                     server.url.includes('mixdrop.co') ||
                     server.url.includes('player.videasy.net') ||
-                    server.url.includes('upstream.to') ||
+                    server.url.includes('vidfast.pro') ||
                     server.url.includes('godriveplayer.com') ||
                     server.url.includes('2embed.cc') ||
                     server.url.includes('vidlink.pro')
@@ -7149,7 +7151,7 @@ Proceed with removal?`;
                     server.name.includes('StreamTape') ||
                     server.name.includes('MixDrop') ||
                     server.name.includes('VidEasy') ||
-                    server.name.includes('UpStream') ||
+                    server.name.includes('VidFast') ||
                     server.name.includes('GoDrivePlayer') ||
                     server.name.includes('2Embed') ||
                     server.name.includes('VidLink')
@@ -7184,7 +7186,7 @@ Proceed with removal?`;
                 !server.url.includes('streamtape.com') &&
                 !server.url.includes('mixdrop.co') &&
                 !server.url.includes('player.videasy.net') &&
-                !server.url.includes('upstream.to') &&
+                !server.url.includes('vidfast.pro') &&
                 !server.url.includes('godriveplayer.com') &&
                 !server.url.includes('2embed.cc') &&
                 !server.url.includes('vidlink.pro')

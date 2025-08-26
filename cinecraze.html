@@ -2498,9 +2498,9 @@ jobs:
                                 </select>
                             </div>
                             <div class="embed-option">
-                                <input type="checkbox" id="auto-upstream" checked>
-                                <label for="auto-upstream">UpStream Auto-Embed</label>
-                                <select id="upstream-quality">
+                                <input type="checkbox" id="auto-vidfast" checked>
+                                <label for="auto-vidfast">VidFast.pro Auto-Embed</label>
+                                <select id="vidfast-quality">
                                     <option value="1080p">1080p</option>
                                     <option value="720p">720p</option>
                                     <option value="480p">480p</option>
@@ -2674,7 +2674,7 @@ jobs:
         const VIDCLOUD_BASE = 'https://vidcloud.to/embed';
         const STREAMWISH_BASE = 'https://streamwish.to/e';
         const DOODSTREAM_BASE = 'https://doodstream.com/e';
-        const UPSTREAM_BASE = 'https://upstream.to';
+        const VIDFAST_BASE = 'https://vidfast.pro';
         const STREAMTAPE_BASE = 'https://streamtape.com/e';
         const MIXDROP_BASE = 'https://mixdrop.co/e';
 const GODRIVEPLAYER_BASE = 'https://godriveplayer.com/embed';
@@ -2859,7 +2859,7 @@ const TWOTWOEMBED_BASE = 'https://2embed.cc/embed';
                 'auto-streamtape', 'streamtape-quality',
                 'auto-mixdrop', 'mixdrop-quality',
                 'auto-videasy', 'videasy-quality',
-                'auto-upstream', 'upstream-quality',
+                'auto-vidfast', 'vidfast-quality',
                 'auto-vidlink', 'vidlink-quality'
             ];
              
@@ -3860,9 +3860,13 @@ const TWOTWOEMBED_BASE = 'https://2embed.cc/embed';
                         match = url.match(/player\.videasy\.net\/tv\/(\d+)\/(\d+)\/(\d+)/);
                         if (match) return match[1];
                         
-                        // UpStream format: https://upstream.to/embed-TMDB_ID
-                        match = url.match(/upstream\.to\/embed-(\d+)/);
+                        // UpStream format: https://upstream.to/embed-TMDB_ID or embed-TMDB_IDs{S}e{E}
+                        match = url.match(/upstream\.to\/embed-(\d+)(?:s\d+e\d+)?/);
                         if (match) return match[1];
+                        
+                        // VidFast format: https://vidfast.pro/movie/TMDB_ID or https://vidfast.pro/tv/TMDB_ID/SEASON/EPISODE
+                        match = url.match(/vidfast\.pro\/(?:movie\/(\d+)|tv\/(\d+)\/\d+\/\d+)/);
+                        if (match) return match[1] || match[2];
                     }
                 }
             }
@@ -6678,9 +6682,9 @@ Proceed with removal?`;
                     enabled: document.getElementById('auto-videasy').checked,
                     quality: document.getElementById('videasy-quality').value
                 },
-                upstream: {
-                    enabled: document.getElementById('auto-upstream').checked,
-                    quality: document.getElementById('upstream-quality').value
+                vidfast: {
+                    enabled: document.getElementById('auto-vidfast').checked,
+                    quality: document.getElementById('vidfast-quality').value
                 },
                 godriveplayer: {
                     enabled: document.getElementById('auto-godriveplayer').checked,
@@ -7037,16 +7041,16 @@ Proceed with removal?`;
                 });
             }
 
-            // UpStream
-            if (config.upstream.enabled) {
+            // VidFast
+            if (config.vidfast && config.vidfast.enabled) {
                 let url;
                 if (contentType === 'tv' && seasonNum && episodeNum) {
-                    url = `${UPSTREAM_BASE}/embed-${tmdbId}s${seasonNum}e${episodeNum}.html`;
+                    url = `${VIDFAST_BASE}/tv/${tmdbId}/${seasonNum}/${episodeNum}`;
                 } else {
-                    url = `${UPSTREAM_BASE}/embed-${tmdbId}.html`;
+                    url = `${VIDFAST_BASE}/movie/${tmdbId}`;
                 }
                 sources.push({
-                    name: `UpStream ${config.upstream.quality}`,
+                    name: `VidFast ${config.vidfast.quality}`,
                     subtitle1: "", subtitle2: "", url: url
                 });
             }
@@ -7124,6 +7128,7 @@ Proceed with removal?`;
                     server.url.includes('mixdrop.co') ||
                     server.url.includes('player.videasy.net') ||
                     server.url.includes('upstream.to') ||
+                    server.url.includes('vidfast.pro') ||
                     server.url.includes('godriveplayer.com') ||
                     server.url.includes('2embed.cc') ||
                     server.url.includes('vidlink.pro')
@@ -7149,7 +7154,7 @@ Proceed with removal?`;
                     server.name.includes('StreamTape') ||
                     server.name.includes('MixDrop') ||
                     server.name.includes('VidEasy') ||
-                    server.name.includes('UpStream') ||
+                    server.name.includes('VidFast') ||
                     server.name.includes('GoDrivePlayer') ||
                     server.name.includes('2Embed') ||
                     server.name.includes('VidLink')
@@ -7185,6 +7190,7 @@ Proceed with removal?`;
                 !server.url.includes('mixdrop.co') &&
                 !server.url.includes('player.videasy.net') &&
                 !server.url.includes('upstream.to') &&
+                !server.url.includes('vidfast.pro') &&
                 !server.url.includes('godriveplayer.com') &&
                 !server.url.includes('2embed.cc') &&
                 !server.url.includes('vidlink.pro')
@@ -7197,26 +7203,21 @@ Proceed with removal?`;
             let added = 0;
 
             entries.forEach(entry => {
-                // Apply filter
                 if (filterType === 'no-embed' && hasEmbedSources(entry)) return;
                 if (filterType === 'direct-only' && !hasDirectLinksOnly(entry)) return;
 
                 processed++;
-                
-                // Get TMDB ID from entry
+
                 const tmdbId = entry.TMDB_ID || entry.tmdb_id;
                 if (!tmdbId) return;
 
-                // Determine content type
                 const contentType = entry.Type === 'series' || entry.type === 'series' ? 'tv' : 'movie';
-                
-                // Generate embed sources
+
                 const embedSources = generateEmbedSources(tmdbId, contentType);
-                
-                // Add embed sources to existing servers
+
                 if (!entry.Servers) entry.Servers = [];
                 entry.Servers = dedupeServers([...entry.Servers, ...embedSources]);
-                
+
                 added += embedSources.length;
             });
 

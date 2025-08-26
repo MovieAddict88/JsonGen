@@ -3860,6 +3860,10 @@ const TWOTWOEMBED_BASE = 'https://2embed.cc/embed';
                         match = url.match(/player\.videasy\.net\/tv\/(\d+)\/(\d+)\/(\d+)/);
                         if (match) return match[1];
                         
+                        // UpStream format: https://upstream.to/embed-TMDB_ID or embed-TMDB_IDs{S}e{E}
+                        match = url.match(/upstream\.to\/embed-(\d+)(?:s\d+e\d+)?/);
+                        if (match) return match[1];
+                        
                         // VidFast format: https://vidfast.pro/movie/TMDB_ID or https://vidfast.pro/tv/TMDB_ID/SEASON/EPISODE
                         match = url.match(/vidfast\.pro\/(?:movie\/(\d+)|tv\/(\d+)\/\d+\/\d+)/);
                         if (match) return match[1] || match[2];
@@ -7123,6 +7127,7 @@ Proceed with removal?`;
                     server.url.includes('streamtape.com') ||
                     server.url.includes('mixdrop.co') ||
                     server.url.includes('player.videasy.net') ||
+                    server.url.includes('upstream.to') ||
                     server.url.includes('vidfast.pro') ||
                     server.url.includes('godriveplayer.com') ||
                     server.url.includes('2embed.cc') ||
@@ -7184,6 +7189,7 @@ Proceed with removal?`;
                 !server.url.includes('streamtape.com') &&
                 !server.url.includes('mixdrop.co') &&
                 !server.url.includes('player.videasy.net') &&
+                !server.url.includes('upstream.to') &&
                 !server.url.includes('vidfast.pro') &&
                 !server.url.includes('godriveplayer.com') &&
                 !server.url.includes('2embed.cc') &&
@@ -7191,47 +7197,27 @@ Proceed with removal?`;
             );
         }
 
-        function applyAutoEmbedToContent(entries, filterType = 'all', seasonNumber = null) {
+        function applyAutoEmbedToContent(entries, filterType = 'all') {
             const config = getAutoEmbedConfig();
             let processed = 0;
             let added = 0;
 
             entries.forEach(entry => {
-                // Apply filter
                 if (filterType === 'no-embed' && hasEmbedSources(entry)) return;
                 if (filterType === 'direct-only' && !hasDirectLinksOnly(entry)) return;
 
                 processed++;
-                
-                // Get TMDB ID from entry
+
                 const tmdbId = entry.TMDB_ID || entry.tmdb_id;
                 if (!tmdbId) return;
 
-                // Determine content type and episode context
-                let contentType = 'movie';
-                if (seasonNumber !== null || entry.Type === 'series' || entry.type === 'series') {
-                    contentType = 'tv';
-                }
+                const contentType = entry.Type === 'series' || entry.type === 'series' ? 'tv' : 'movie';
 
-                let seasonNum = null;
-                let episodeNum = null;
-                if (contentType === 'tv') {
-                    seasonNum = seasonNumber != null ? seasonNumber : (entry.Season || entry.season || null);
-                    episodeNum = entry.Episode || entry.episode || null;
-                }
-                
-                // Generate embed sources
-                let embedSources = [];
-                if (contentType === 'tv' && seasonNum && episodeNum) {
-                    embedSources = generateEmbedSources(tmdbId, 'tv', seasonNum, episodeNum);
-                } else {
-                    embedSources = generateEmbedSources(tmdbId, 'movie');
-                }
-                
-                // Add embed sources to existing servers
+                const embedSources = generateEmbedSources(tmdbId, contentType);
+
                 if (!entry.Servers) entry.Servers = [];
                 entry.Servers = dedupeServers([...entry.Servers, ...embedSources]);
-                
+
                 added += embedSources.length;
             });
 
@@ -7268,7 +7254,7 @@ Proceed with removal?`;
                 if (series.Seasons && Array.isArray(series.Seasons)) {
                     series.Seasons.forEach(season => {
                         if (season.Episodes && Array.isArray(season.Episodes)) {
-                            const result = applyAutoEmbedToContent(season.Episodes, filterType, season.Season);
+                            const result = applyAutoEmbedToContent(season.Episodes, filterType);
                             totalProcessed += result.processed;
                             totalAdded += result.added;
                         }
@@ -7296,7 +7282,7 @@ Proceed with removal?`;
                         if (series.Seasons && Array.isArray(series.Seasons)) {
                             series.Seasons.forEach(season => {
                                 if (season.Episodes && Array.isArray(season.Episodes)) {
-                                    const result = applyAutoEmbedToContent(season.Episodes, filterType, season.Season);
+                                    const result = applyAutoEmbedToContent(season.Episodes, filterType);
                                     totalProcessed += result.processed;
                                     totalAdded += result.added;
                                 }

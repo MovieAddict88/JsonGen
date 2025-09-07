@@ -1,4 +1,4 @@
-  <!DOCTYPE html>
+   <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -2346,7 +2346,7 @@ jobs:
                             </div>
                             <div class="embed-option">
                                 <input type="checkbox" id="auto-smashystream" checked>
-                                <label for="auto-smashystream">SmashyStream Auto-Embed</label>
+                                <label for="auto-smashystream">VidSrc.win Auto-Embed</label>
                                 <select id="smashystream-quality">
                                     <option value="1080p">1080p</option>
                                     <option value="720p">720p</option>
@@ -2499,7 +2499,7 @@ jobs:
                             </div>
                             <div class="embed-option">
                                 <input type="checkbox" id="auto-upstream" checked>
-                                <label for="auto-upstream">UpStream Auto-Embed</label>
+                                <label for="auto-upstream">VidFast.pro Auto-Embed</label>
                                 <select id="upstream-quality">
                                     <option value="1080p">1080p</option>
                                     <option value="720p">720p</option>
@@ -2652,7 +2652,7 @@ jobs:
         const EMBEDSU_BASE = 'https://embed.su/embed';
         const VIDSRCME_BASE = 'https://vidsrc.me/embed';
         const AUTOEMBED_BASE = 'https://player.autoembed.cc/embed';
-        const SMASHYSTREAM_BASE = 'https://player.smashy.stream/movie';
+        const SMASHYSTREAM_BASE = 'https://vidsrc.win';
         const VIDSRCTO_BASE = 'https://vidsrc.to/embed';
         const VIDSRCXYZ_BASE = 'https://vidsrc.xyz/embed';
         const EMBEDSOAP_BASE = 'https://www.embedsoap.com/embed';
@@ -2674,7 +2674,7 @@ jobs:
         const VIDCLOUD_BASE = 'https://vidcloud.to/embed';
         const STREAMWISH_BASE = 'https://streamwish.to/e';
         const DOODSTREAM_BASE = 'https://doodstream.com/e';
-        const UPSTREAM_BASE = 'https://upstream.to';
+        const UPSTREAM_BASE = 'https://vidfast.pro';
         const STREAMTAPE_BASE = 'https://streamtape.com/e';
         const MIXDROP_BASE = 'https://mixdrop.co/e';
 const GODRIVEPLAYER_BASE = 'https://godriveplayer.com/embed';
@@ -3789,8 +3789,10 @@ const TWOTWOEMBED_BASE = 'https://2embed.cc/embed';
                         match = url.match(/autoembed\.cc\/embed\/tv\/(\d+)/);
                         if (match) return match[1];
                         
-                        // SmashyStream format: https://player.smashy.stream/movie/TMDB_ID
-                        match = url.match(/smashy\.stream\/movie\/(\d+)/);
+                        // VidSrc.win formats
+                        match = url.match(/vidsrc\.win\/tv\?id=(\d+)&s=\d+&e=\d+/);
+                        if (match) return match[1];
+                        match = url.match(/vidsrc\.win\/movie\.html\?id=(\d+)/);
                         if (match) return match[1];
                         
                         // VidSrc.to format: https://vidsrc.to/embed/movie/TMDB_ID or tv/TMDB_ID
@@ -3860,8 +3862,10 @@ const TWOTWOEMBED_BASE = 'https://2embed.cc/embed';
                         match = url.match(/player\.videasy\.net\/tv\/(\d+)\/(\d+)\/(\d+)/);
                         if (match) return match[1];
                         
-                        // UpStream format: https://upstream.to/embed-TMDB_ID
-                        match = url.match(/upstream\.to\/embed-(\d+)/);
+                        // VidFast format: https://vidfast.pro/movie/TMDB_ID or tv/TMDB_ID/SEASON/EPISODE
+                        match = url.match(/vidfast\.pro\/tv\/(\d+)\/(\d+)\/(\d+)/);
+                        if (match) return match[1];
+                        match = url.match(/vidfast\.pro\/movie\/(\d+)/);
                         if (match) return match[1];
                     }
                 }
@@ -6800,13 +6804,13 @@ Proceed with removal?`;
             if (config.smashystream.enabled) {
                 let url;
                 if (contentType === 'tv' && seasonNum && episodeNum) {
-                    url = `${SMASHYSTREAM_BASE}/${tmdbId}?s=${seasonNum}&e=${episodeNum}`;
+                    url = `${SMASHYSTREAM_BASE}/tv?id=${tmdbId}&s=${seasonNum}&e=${episodeNum}`;
                 } else {
-                    url = `${SMASHYSTREAM_BASE}/${tmdbId}`;
+                    url = `${SMASHYSTREAM_BASE}/movie.html?id=${tmdbId}`;
                 }
                 
                 sources.push({
-                    name: `SmashyStream ${config.smashystream.quality}`,
+                    name: `VidSrc.win ${config.smashystream.quality}`,
                     subtitle1: "",
                     subtitle2: "",
                     url: url
@@ -7037,16 +7041,16 @@ Proceed with removal?`;
                 });
             }
 
-            // UpStream
+            // VidFast
             if (config.upstream.enabled) {
                 let url;
                 if (contentType === 'tv' && seasonNum && episodeNum) {
-                    url = `${UPSTREAM_BASE}/embed-${tmdbId}s${seasonNum}e${episodeNum}.html`;
+                    url = `${UPSTREAM_BASE}/tv/${tmdbId}/${seasonNum}/${episodeNum}`;
                 } else {
-                    url = `${UPSTREAM_BASE}/embed-${tmdbId}.html`;
+                    url = `${UPSTREAM_BASE}/movie/${tmdbId}`;
                 }
                 sources.push({
-                    name: `UpStream ${config.upstream.quality}`,
+                    name: `VidFast ${config.upstream.quality}`,
                     subtitle1: "", subtitle2: "", url: url
                 });
             }
@@ -7106,7 +7110,7 @@ Proceed with removal?`;
                     server.url.includes('embed.su/embed') ||
                     server.url.includes('vidsrc.me/embed') ||
                     server.url.includes('autoembed.cc/embed') ||
-                    server.url.includes('smashy.stream') ||
+                    server.url.includes('vidsrc.win') ||
                     server.url.includes('vidsrc.to/embed') ||
                     server.url.includes('vidsrc.xyz/embed') ||
                     server.url.includes('embedsoap.com') ||
@@ -7123,7 +7127,7 @@ Proceed with removal?`;
                     server.url.includes('streamtape.com') ||
                     server.url.includes('mixdrop.co') ||
                     server.url.includes('player.videasy.net') ||
-                    server.url.includes('upstream.to') ||
+                    server.url.includes('vidfast.pro') ||
                     server.url.includes('godriveplayer.com') ||
                     server.url.includes('2embed.cc') ||
                     server.url.includes('vidlink.pro')
@@ -7134,7 +7138,7 @@ Proceed with removal?`;
                     server.name.includes('MultiEmbed') ||
                     server.name.includes('Embed.su') ||
                     server.name.includes('AutoEmbed') ||
-                    server.name.includes('SmashyStream') ||
+                    server.name.includes('VidSrc.win') ||
                     server.name.includes('EmbedSoap') ||
                     server.name.includes('MoviesAPI') ||
                     server.name.includes('DBGO') ||
@@ -7149,7 +7153,7 @@ Proceed with removal?`;
                     server.name.includes('StreamTape') ||
                     server.name.includes('MixDrop') ||
                     server.name.includes('VidEasy') ||
-                    server.name.includes('UpStream') ||
+                    server.name.includes('VidFast') ||
                     server.name.includes('GoDrivePlayer') ||
                     server.name.includes('2Embed') ||
                     server.name.includes('VidLink')
@@ -7167,7 +7171,7 @@ Proceed with removal?`;
                 !server.url.includes('embed.su') &&
                 !server.url.includes('vidsrc.me') &&
                 !server.url.includes('autoembed.cc') &&
-                !server.url.includes('smashy.stream') &&
+                !server.url.includes('vidsrc.win') &&
                 !server.url.includes('vidsrc.to') &&
                 !server.url.includes('vidsrc.xyz') &&
                 !server.url.includes('embedsoap.com') &&
@@ -7184,7 +7188,7 @@ Proceed with removal?`;
                 !server.url.includes('streamtape.com') &&
                 !server.url.includes('mixdrop.co') &&
                 !server.url.includes('player.videasy.net') &&
-                !server.url.includes('upstream.to') &&
+                !server.url.includes('vidfast.pro') &&
                 !server.url.includes('godriveplayer.com') &&
                 !server.url.includes('2embed.cc') &&
                 !server.url.includes('vidlink.pro')
@@ -8264,4 +8268,4 @@ Proceed with removal?`;
         }
     </script>
 </body>
-</html
+</htm

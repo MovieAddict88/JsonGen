@@ -2666,7 +2666,6 @@ jobs:
         const PRIMEWIRE_BASE = 'https://primewire.mx/embed';
         const CATAZ_BASE = 'https://cataz.net/embed';
         const HDTODAY_BASE = 'https://hdtoday.tv/embed';
-        const VIDLINK_BASE = 'https://vidlink.pro/movie';
         const STREAMLARE_BASE = 'https://streamlare.com/e';
         const VIDEASY_MOVIE_BASE = 'https://player.videasy.net/movie';
         const VIDEASY_TV_BASE = 'https://player.videasy.net/tv';
@@ -3976,7 +3975,7 @@ const TWOTWOEMBED_BASE = 'https://2embed.cc/embed';
                 },
                 {
                     name: 'VidLink Pro',
-                    url: `https://vidlink.pro/movie/${tmdbId}?s=${seasonNumber}&e=${episodeNumber}`
+                    url: `https://vidlink.pro/tv/${tmdbId}/${seasonNumber}/${episodeNumber}`
                 },
                 {
                     name: 'Cataz.net',
@@ -7087,9 +7086,9 @@ Proceed with removal?`;
             if (config.vidlink.enabled) {
                 let url;
                 if (contentType === 'tv' && seasonNum && episodeNum) {
-                    url = `${VIDLINK_BASE}/${tmdbId}?s=${seasonNum}&e=${episodeNum}`;
+                    url = `https://vidlink.pro/tv/${tmdbId}/${seasonNum}/${episodeNum}`;
                 } else {
-                    url = `${VIDLINK_BASE}/${tmdbId}`;
+                    url = `https://vidlink.pro/movie/${tmdbId}`;
                 }
                 sources.push({
                     name: `VidLink.pro ${config.vidlink.quality}`,

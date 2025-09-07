@@ -1837,6 +1837,8 @@ jobs:
                         <label>Content Type</label>
                         <select id="search-type" onchange="handleSearchTypeChange()">
                             <option value="search">🔍 Search Mode</option>
+                            <option value="hollywood">🎬 Hollywood</option>
+                            <option value="anime">🇯🇵 Anime</option>
                             <option value="kdrama">🇰🇷 K-Drama (Korean)</option>
                             <option value="cdrama">🇨🇳 C-Drama (Chinese)</option>
                             <option value="jdrama">🇯🇵 J-Drama (Japanese)</option>
@@ -2686,6 +2688,20 @@ const TWOTWOEMBED_BASE = 'https://2embed.cc/embed';
         
         // Regional drama configurations
         const REGIONAL_CONFIGS = {
+            hollywood: {
+                name: 'Hollywood',
+                origin_country: 'US',
+                language: 'en',
+                genres: [], // All genres
+                keywords: ['hollywood', 'american movie']
+            },
+            anime: {
+                name: 'Anime',
+                origin_country: 'JP',
+                language: 'ja',
+                genres: [16], // Animation genre ID
+                keywords: ['anime', 'japanese animation']
+            },
             kdrama: {
                 name: 'K-Drama',
                 origin_country: 'KR',

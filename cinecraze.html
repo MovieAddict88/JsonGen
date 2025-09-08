@@ -2476,7 +2476,7 @@ jobs:
                             </div>
                             <div class="embed-option">
                                 <input type="checkbox" id="auto-streamtape" checked>
-                                <label for="auto-streamtape">StreamTape Auto-Embed</label>
+                                <label for="auto-streamtape">Vidplus Auto-Embed</label>
                                 <select id="streamtape-quality">
                                     <option value="1080p">1080p</option>
                                     <option value="720p">720p</option>
@@ -2485,7 +2485,7 @@ jobs:
                             </div>
                             <div class="embed-option">
                                 <input type="checkbox" id="auto-mixdrop" checked>
-                                <label for="auto-mixdrop">MixDrop Auto-Embed</label>
+                                <label for="auto-mixdrop">2embed.stream Auto-Embed</label>
                                 <select id="mixdrop-quality">
                                     <option value="1080p">1080p</option>
                                     <option value="720p">720p</option>
@@ -2678,8 +2678,8 @@ jobs:
         const STREAMWISH_BASE = 'https://streamwish.to/e';
         const DOODSTREAM_BASE = 'https://doodstream.com/e';
         const UPSTREAM_BASE = 'https://vidfast.pro';
-        const STREAMTAPE_BASE = 'https://streamtape.com/e';
-        const MIXDROP_BASE = 'https://mixdrop.co/e';
+        const STREAMTAPE_BASE = 'https://player.vidplus.to/embed';
+        const MIXDROP_BASE = 'https://www.2embed.stream/embed';
 const GODRIVEPLAYER_BASE = 'https://godriveplayer.com/embed';
 const TWOTWOEMBED_BASE = 'https://2embed.cc/embed';
         
@@ -7034,12 +7034,12 @@ Proceed with removal?`;
             if (config.streamtape.enabled) {
                 let url;
                 if (contentType === 'tv' && seasonNum && episodeNum) {
-                    url = `${STREAMTAPE_BASE}/${tmdbId}_s${seasonNum}e${episodeNum}`;
+                    url = `${STREAMTAPE_BASE}/tv/${tmdbId}/${seasonNum}/${episodeNum}?autoplay=true`;
                 } else {
-                    url = `${STREAMTAPE_BASE}/${tmdbId}`;
+                    url = `${STREAMTAPE_BASE}/movie/${tmdbId}?autoplay=true`;
                 }
                 sources.push({
-                    name: `StreamTape ${config.streamtape.quality}`,
+                    name: `Vidplus ${config.streamtape.quality}`,
                     subtitle1: "", subtitle2: "", url: url
                 });
             }
@@ -7048,12 +7048,12 @@ Proceed with removal?`;
             if (config.mixdrop.enabled) {
                 let url;
                 if (contentType === 'tv' && seasonNum && episodeNum) {
-                    url = `${MIXDROP_BASE}/${tmdbId}_s${seasonNum}e${episodeNum}`;
+                    url = `${MIXDROP_BASE}/tv/${tmdbId}/${seasonNum}/${episodeNum}`;
                 } else {
-                    url = `${MIXDROP_BASE}/${tmdbId}`;
+                    url = `${MIXDROP_BASE}/movie/${tmdbId}`;
                 }
                 sources.push({
-                    name: `MixDrop ${config.mixdrop.quality}`,
+                    name: `2embed.stream ${config.mixdrop.quality}`,
                     subtitle1: "", subtitle2: "", url: url
                 });
             }
@@ -7076,9 +7076,9 @@ Proceed with removal?`;
             if (config.upstream.enabled) {
                 let url;
                 if (contentType === 'tv' && seasonNum && episodeNum) {
-                    url = `${UPSTREAM_BASE}/tv/${tmdbId}/${seasonNum}/${episodeNum}`;
+                    url = `${UPSTREAM_BASE}/tv/${tmdbId}/${seasonNum}/${episodeNum}?autoPlay=true`;
                 } else {
-                    url = `${UPSTREAM_BASE}/movie/${tmdbId}`;
+                    url = `${UPSTREAM_BASE}/movie/${tmdbId}?autoPlay=true`;
                 }
                 sources.push({
                     name: `VidFast ${config.upstream.quality}`,
@@ -7118,9 +7118,9 @@ Proceed with removal?`;
             if (config.vidlink.enabled) {
                 let url;
                 if (contentType === 'tv' && seasonNum && episodeNum) {
-                    url = `https://vidlink.pro/tv/${tmdbId}/${seasonNum}/${episodeNum}`;
+                    url = `https://vidlink.pro/tv/${tmdbId}/${seasonNum}/${episodeNum}?autoplay=true`;
                 } else {
-                    url = `https://vidlink.pro/movie/${tmdbId}`;
+                    url = `https://vidlink.pro/movie/${tmdbId}?autoplay=true`;
                 }
                 sources.push({
                     name: `VidLink.pro ${config.vidlink.quality}`,

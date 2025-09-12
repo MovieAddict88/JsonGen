@@ -1,4 +1,4 @@
-    <!DOCTYPE html>
+     <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -1667,7 +1667,15 @@ jobs:
                     // Continue with upload even if local save fails
                 }
                 
-                await uploadToGitHub(dataStr, 'playlist.json');
+                const filenameInput = document.getElementById('github-filename');
+                let filename = filenameInput.value.trim();
+                if (!filename) {
+                    filename = 'playlist.json';
+                } else if (!filename.endsWith('.json')) {
+                    filename += '.json';
+                }
+
+                await uploadToGitHub(dataStr, filename);
                 
             } catch (error) {
                 console.error('GitHub export preparation error:', error);
@@ -2230,6 +2238,11 @@ jobs:
                                 <label for="github-token">GitHub Personal Access Token:</label>
                                 <input type="password" id="github-token" placeholder="Enter your GitHub token" class="form-control">
                                 <small class="form-text">Get your token from <a href="https://github.com/settings/tokens" target="_blank">GitHub Settings</a></small>
+                            </div>
+                            <div class="form-group">
+                                <label for="github-filename">Filename:</label>
+                                <input type="text" id="github-filename" placeholder="e.g., playlist.json" class="form-control">
+                                <small class="form-text">Enter the desired filename for the upload (e.g., 2025.json, playlist3.json).</small>
                             </div>
                             <div class="form-group">
                                 <button class="btn btn-success" onclick="setGitHubToken()">🔑 Set Token</button>
@@ -8349,4 +8362,4 @@ Proceed with removal?`;
         }
     </script>
 </body>
-</html>
+</html

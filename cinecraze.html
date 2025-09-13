@@ -1377,7 +1377,7 @@
             const progressFill = document.getElementById('github-upload-progress-fill');
             const progressText = document.getElementById('github-upload-progress-text');
 
-            const ZIP_THRESHOLD_MB = 50;
+            const ZIP_THRESHOLD_MB = 10;
 
             try {
                 if (progressBar) {
@@ -1454,7 +1454,9 @@
                 }
 
                 updateProgress(30, 'Preparing upload data...');
-                const content = btoa(unescape(encodeURIComponent(jsonData)));
+                const encoder = new TextEncoder();
+                const dataBuffer = encoder.encode(jsonData);
+                const content = arrayBufferToBase64(dataBuffer.buffer);
 
                 updateProgress(50, 'Checking if file exists...');
                 const existingSha = await getExistingFileSha(filename);

@@ -1,4 +1,4 @@
-     <!DOCTYPE html>
+      <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -1377,7 +1377,7 @@
             const progressFill = document.getElementById('github-upload-progress-fill');
             const progressText = document.getElementById('github-upload-progress-text');
 
-            const ZIP_THRESHOLD_MB = 50;
+            const ZIP_THRESHOLD_MB = 10;
 
             try {
                 if (progressBar) {
@@ -1454,7 +1454,9 @@
                 }
 
                 updateProgress(30, 'Preparing upload data...');
-                const content = btoa(unescape(encodeURIComponent(jsonData)));
+                const encoder = new TextEncoder();
+                const dataBuffer = encoder.encode(jsonData);
+                const content = arrayBufferToBase64(dataBuffer.buffer);
 
                 updateProgress(50, 'Checking if file exists...');
                 const existingSha = await getExistingFileSha(filename);
@@ -2178,6 +2180,95 @@ jobs:
                         </div>
                         <div class="progress-text" id="genre-progress-text">Processing...</div>
                     </div>
+                </div>
+
+                <div class="card">
+                    <h2>🌍 Regional Bulk Generation</h2>
+                    <div class="form-group">
+                        <label>Region</label>
+                        <select id="bulk-regional-select">
+                            <option value="hollywood">🎬 Hollywood</option>
+                            <option value="anime">🇯🇵 Anime</option>
+                            <option value="animation">🎨 Animation</option>
+                            <option value="kids">🧸 Kids / Family</option>
+                            <option value="kdrama">🇰🇷 K-Drama (Korean)</option>
+                            <option value="cdrama">🇨🇳 C-Drama (Chinese)</option>
+                            <option value="jdrama">🇯🇵 J-Drama (Japanese)</option>
+                            <option value="pinoy">🇵🇭 Pinoy Series (Filipino)</option>
+                            <option value="thai">🇹🇭 Thai Drama</option>
+                            <option value="indian">🇮🇳 Indian Series</option>
+                            <option value="turkish">🇹🇷 Turkish Drama</option>
+                            <option value="korean-variety">🎭 Korean Variety Shows</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Content Type</label>
+                        <select id="bulk-regional-content-type">
+                            <option value="both">🎭 Both Movies & Series</option>
+                            <option value="movie">🎬 Movies Only</option>
+                            <option value="tv">📺 TV Series Only</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Year or Range</label>
+                        <select id="bulk-regional-year-select">
+                            <option value="">Any Year (Most Popular)</option>
+                            <option value="2025">2025 (Latest)</option>
+                            <option value="2024">2024</option>
+                            <option value="2023">2023</option>
+                            <option value="2022">2022</option>
+                            <option value="2021">2021</option>
+                            <option value="2020">2020</option>
+                            <option value="2019">2019</option>
+                            <option value="2018">2018</option>
+                            <option value="2017">2017</option>
+                            <option value="2016">2016</option>
+                            <option value="2015">2015</option>
+                            <option value="2014">2014</option>
+                            <option value="2013">2013</option>
+                            <option value="2012">2012</option>
+                            <option value="2011">2011</option>
+                            <option value="2010">2010</option>
+                            <option value="2009">2009</option>
+                            <option value="2008">2008</option>
+                            <option value="2007">2007</option>
+                            <option value="2006">2006</option>
+                            <option value="2005">2005</option>
+                            <option value="2004">2004</option>
+                            <option value="2003">2003</option>
+                            <option value="2002">2002</option>
+                            <option value="2001">2001</option>
+                            <option value="2000">2000</option>
+                            <option value="1999">1999</option>
+                            <option value="1998">1998</option>
+                            <option value="1997">1997</option>
+                            <option value="1996">1996</option>
+                            <option value="1995">1995</option>
+                            <option value="all-recent">All Recent (2020-2025)</option>
+                            <option value="all-2010s">All 2010s (2010-2019)</option>
+                            <option value="all-2000s">All 2000s (2000-2009)</option>
+                            <option value="all-classic">All Classic (1990-1999)</option>
+                            <option value="all-time">All Time (1990-2025)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Number of Pages (1 page = 20 items)</label>
+                        <input type="number" id="bulk-regional-pages" min="1" max="500" value="5">
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="bulk-regional-skip-duplicates" checked>
+                            Skip Duplicates
+                        </label>
+                    </div>
+                    <button class="btn btn-primary" onclick="bulkGenerateRegional()">
+                        <span class="loading" id="bulk-regional-loading" style="display: none;"></span>
+                        Start Regional Generation
+                    </button>
+                    <div class="progress-bar" style="margin-top: 15px;">
+                        <div class="progress-fill" id="bulk-regional-progress"></div>
+                    </div>
+                    <div id="bulk-regional-status"></div>
                 </div>
             </div>
         </div>
@@ -8191,6 +8282,105 @@ Proceed with removal?`;
                 `;
             }
         }
+        async function bulkGenerateRegional() {
+            const region = document.getElementById('bulk-regional-select').value;
+            const contentType = document.getElementById('bulk-regional-content-type').value;
+            const yearRange = document.getElementById('bulk-regional-year-select').value;
+            const pages = parseInt(document.getElementById('bulk-regional-pages').value);
+            const skipDuplicates = document.getElementById('bulk-regional-skip-duplicates').checked;
+
+            showLoading('bulk-regional-loading', true);
+            const statusDiv = document.getElementById('bulk-regional-status');
+            const progressBar = document.getElementById('bulk-regional-progress');
+            
+            statusDiv.innerHTML = '<div class="status info">Starting regional bulk generation...</div>';
+            progressBar.style.width = '0%';
+
+            let generated = 0;
+            let skipped = 0;
+            let totalFetched = 0;
+
+            const years = [];
+            if (yearRange === 'all-recent') {
+                for (let y = 2025; y >= 2020; y--) years.push(y);
+            } else if (yearRange === 'all-2010s') {
+                for (let y = 2019; y >= 2010; y--) years.push(y);
+            } else if (yearRange === 'all-2000s') {
+                for (let y = 2009; y >= 2000; y--) years.push(y);
+            } else if (yearRange === 'all-classic') {
+                for (let y = 1999; y >= 1990; y--) years.push(y);
+            } else if (yearRange === 'all-time') {
+                 for (let y = 2025; y >= 1990; y--) years.push(y);
+            } else if (yearRange) {
+                years.push(parseInt(yearRange));
+            }
+
+            const totalSteps = (years.length > 0 ? years.length : 1) * pages;
+            let currentStep = 0;
+
+            const processYear = async (y) => {
+                for (let page = 1; page <= pages; page++) {
+                    currentStep++;
+                    const progress = (currentStep / totalSteps) * 100;
+                    progressBar.style.width = `${progress}%`;
+                    statusDiv.innerHTML = `<div class="status info">Processing Year: ${y || 'Any'}, Page: ${page}/${pages} - Generated: ${generated}, Skipped: ${skipped}</div>`;
+
+                    const contentTypesToFetch = contentType === 'both' ? ['movie', 'tv'] : [contentType];
+                    for (const type of contentTypesToFetch) {
+                        const params = {
+                            with_origin_country: REGIONAL_CONFIGS[region].origin_country,
+                            with_original_language: REGIONAL_CONFIGS[region].language,
+                            page: page,
+                            sort_by: 'popularity.desc'
+                        };
+                        if (y) {
+                            if (type === 'movie') params.primary_release_year = y;
+                            else params.first_air_date_year = y;
+                        }
+                        if (REGIONAL_CONFIGS[region].genres.length > 0) {
+                            params.with_genres = REGIONAL_CONFIGS[region].genres.join(',');
+                        }
+
+                        const data = await fetchTMDB(`/discover/${type}`, params);
+                        if (!data?.results) continue;
+
+                        totalFetched += data.results.length;
+
+                        for (const item of data.results) {
+                            if (skipDuplicates && isDuplicateByTitle(item.title || item.name, type)) {
+                                skipped++;
+                                continue;
+                            }
+                            try {
+                                if (type === 'movie') {
+                                    await generateMovie(item.id);
+                                } else {
+                                    await generateSeries(item.id);
+                                }
+                                generated++;
+                            } catch (error) {
+                                console.error(`Error generating ${type} ${item.id}:`, error);
+                            }
+                        }
+                    }
+                    await new Promise(resolve => setTimeout(resolve, 200)); // API rate limiting
+                }
+            };
+
+            if (years.length > 0) {
+                for (const y of years) {
+                    await processYear(y);
+                }
+            } else {
+                await processYear(null); // For "Any Year"
+            }
+
+            showLoading('bulk-regional-loading', false);
+            statusDiv.innerHTML = `<div class="status success">Regional bulk generation complete! Fetched: ${totalFetched}, Generated: ${generated}, Skipped: ${skipped}</div>`;
+            updateDataStats();
+            updatePreview();
+        }
+
         async function applyAutoEmbedToSelected() {
             const select = document.getElementById('auto-embed-content-select');
             const tmdbIdInput = document.getElementById('selected-tmdb-id');
@@ -8362,4 +8552,4 @@ Proceed with removal?`;
         }
     </script>
 </body>
-</html
+</htm

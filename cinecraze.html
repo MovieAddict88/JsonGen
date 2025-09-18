@@ -1793,8 +1793,8 @@ jobs:
                         <label>Additional Servers</label>
                         <div id="movie-servers" class="server-list">
                                                     <div class="server-item">
-                            <input type="text" placeholder="Server Name" class="server-name">
-                            <input type="url" placeholder="Video URL" class="server-url">
+                            <input type="text" placeholder="Server Name" class="server-name js-server-name">
+                            <input type="url" placeholder="Video URL" class="server-url js-server-url">
                             <button class="paste-btn" onclick="pasteFromClipboard(this)">📋 Paste</button>
                             <button class="btn btn-danger btn-small" onclick="removeServer(this)">Remove</button>
                         </div>
@@ -1821,8 +1821,8 @@ jobs:
                         <label>Additional Servers</label>
                         <div id="series-servers" class="server-list">
                                                     <div class="server-item">
-                            <input type="text" placeholder="Server Name" class="server-name">
-                            <input type="url" placeholder="Video URL Template (use {season} {episode})" class="server-url">
+                            <input type="text" placeholder="Server Name" class="server-name js-server-name">
+                            <input type="url" placeholder="Video URL Template (use {season} {episode})" class="server-url js-server-url">
                             <button class="paste-btn" onclick="pasteFromClipboard(this)">📋 Paste</button>
                             <button class="btn btn-danger btn-small" onclick="removeServer(this)">Remove</button>
                         </div>
@@ -2001,8 +2001,8 @@ jobs:
                     <label>Video Sources</label>
                     <div id="manual-sources" class="server-list">
                         <div class="server-item">
-                            <input type="text" placeholder="Source Name" class="source-name">
-                            <input type="url" placeholder="Video URL" class="source-url">
+                            <input type="text" placeholder="Source Name" class="source-name js-server-name">
+                            <input type="url" placeholder="Video URL" class="source-url js-server-url">
                             <select class="source-type">
                                 <option value="video">Direct Video</option>
                                 <option value="embed">Embedded</option>
@@ -2710,6 +2710,15 @@ jobs:
                         <option value="live">Live TV</option>
                     </select>
                 </div>
+                <div class="form-group">
+                    <label for="preview-search">Search by Title</label>
+                    <input type="text" id="preview-search" onkeyup="debouncedUpdatePreview()" placeholder="Enter title to search...">
+                </div>
+                <div id="pagination-controls" style="text-align: center; margin-bottom: 20px;">
+                    <button class="btn btn-secondary btn-small" id="prev-page" onclick="changePage(-1)">Previous</button>
+                    <span id="page-info" style="margin: 0 15px; font-weight: 600;">Page 1 of 1</span>
+                    <button class="btn btn-secondary btn-small" id="next-page" onclick="changePage(1)">Next</button>
+                </div>
                 <div id="content-preview" class="preview-grid"></div>
             </div>
         </div>
@@ -2743,10 +2752,20 @@ jobs:
             <span class="close" onclick="closeEditModal()">&times;</span>
             <h2>Edit Content</h2>
             <div id="edit-form"></div>
-            <button class="btn btn-primary" onclick="saveEdit()">Save Changes</button>
+            <button class="btn btn-primary" id="modal-save-btn" onclick="saveEdit()">Save Changes</button>
         </div>
     </div>
     <script>
+        // Debounce function
+        function debounce(func, delay) {
+            let timeout;
+            return function(...args) {
+                const context = this;
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(context, args), delay);
+            };
+        }
+
         // Configuration - Multiple API Keys for Backup
         const TMDB_API_KEYS = {
             'primary': 'ec926176bf467b3f7735e3154238c161',
@@ -2960,6 +2979,18 @@ const TWOTWOEMBED_BASE = 'https://2embed.cc/embed';
         };
 
         let nextId = 1;
+        let currentPage = 1;
+        const itemsPerPage = 50;
+
+        const debouncedUpdatePreview = debounce(() => {
+            currentPage = 1; // Reset to first page on new search
+            updatePreview();
+        }, 300);
+
+        function changePage(direction) {
+            currentPage += direction;
+            updatePreview();
+        }
 
                          // Initialize
         document.addEventListener('DOMContentLoaded', async function() {
@@ -3709,8 +3740,8 @@ const TWOTWOEMBED_BASE = 'https://2embed.cc/embed';
              const additionalSources = [];
              
              serverInputs.forEach(item => {
-                 const name = item.querySelector('.server-name').value.trim();
-                 const url = item.querySelector('.server-url').value.trim();
+                 const name = item.querySelector('.js-server-name').value.trim();
+                 const url = item.querySelector('.js-server-url').value.trim();
                  if (name && url) {
                      additionalSources.push({
                          id: nextId++,
@@ -4182,8 +4213,8 @@ const TWOTWOEMBED_BASE = 'https://2embed.cc/embed';
             const additionalServerTemplates = [];
             
             serverInputs.forEach(item => {
-                const name = item.querySelector('.server-name').value.trim();
-                const urlTemplate = item.querySelector('.server-url').value.trim();
+                const name = item.querySelector('.js-server-name').value.trim();
+                const urlTemplate = item.querySelector('.js-server-url').value.trim();
                 if (name && urlTemplate) {
                     additionalServerTemplates.push({ name, urlTemplate });
                 }
@@ -4543,8 +4574,8 @@ const TWOTWOEMBED_BASE = 'https://2embed.cc/embed';
                 'Video URL';
             
             serverItem.innerHTML = `
-                <input type="text" placeholder="Server Name" class="server-name">
-                <input type="url" placeholder="${urlPlaceholder}" class="server-url">
+                <input type="text" placeholder="Server Name" class="server-name js-server-name">
+                <input type="url" placeholder="${urlPlaceholder}" class="server-url js-server-url">
                 <button class="paste-btn" onclick="pasteFromClipboard(this)">📋 Paste</button>
                 <button class="btn btn-danger btn-small" onclick="removeServer(this)">Remove</button>
             `;
@@ -4556,8 +4587,8 @@ const TWOTWOEMBED_BASE = 'https://2embed.cc/embed';
             const sourceItem = document.createElement('div');
             sourceItem.className = 'server-item';
             sourceItem.innerHTML = `
-                <input type="text" placeholder="Source Name" class="source-name">
-                <input type="url" placeholder="Video URL" class="source-url">
+                <input type="text" placeholder="Source Name" class="source-name js-server-name">
+                <input type="url" placeholder="Video URL" class="source-url js-server-url">
                 <select class="source-type">
                     <option value="video">Direct Video</option>
                     <option value="embed">Embedded</option>
@@ -4585,12 +4616,28 @@ const TWOTWOEMBED_BASE = 'https://2embed.cc/embed';
             try {
                 const text = await navigator.clipboard.readText();
                 const serverItem = button.closest('.server-item');
-                const urlInput = serverItem.querySelector('input[type="url"], .server-url, .source-url');
+
+                if (!serverItem) {
+                    showStatus('error', 'Could not find server item container.');
+                    return;
+                }
+
+                const urlInput = serverItem.querySelector('.js-server-url');
+                const nameInput = serverItem.querySelector('.js-server-name');
                 
                 if (urlInput) {
                     urlInput.value = text;
                     urlInput.focus();
-                    showStatus('success', 'URL pasted successfully!');
+
+                    if (nameInput) {
+                        const generatedName = generateServerNameFromUrl(text);
+                        if (generatedName) {
+                            nameInput.value = generatedName;
+                        }
+                    }
+                    showStatus('success', 'URL pasted and server name generated!');
+                } else {
+                     showStatus('error', 'Could not find URL input for paste operation.');
                 }
             } catch (error) {
                 showStatus('error', 'Failed to paste from clipboard. Please paste manually.');
@@ -4615,8 +4662,8 @@ const TWOTWOEMBED_BASE = 'https://2embed.cc/embed';
             const servers = [];
             
             sourceInputs.forEach(item => {
-                const name = item.querySelector('.source-name').value.trim();
-                const url = item.querySelector('.source-url').value.trim();
+                const name = item.querySelector('.js-server-name').value.trim();
+                const url = item.querySelector('.js-server-url').value.trim();
                 
                 if (name && url) {
                     servers.push({
@@ -5919,16 +5966,125 @@ Proceed with removal?`;
             }
         }
 
+        function generateServerNameFromUrl(url) {
+            if (!url) return '';
+
+            let nameParts = [];
+            const lowerUrl = url.toLowerCase();
+
+            // 1. Detect Server Name from Domain
+            const domainMapping = {
+                'vidsrc.net': 'VidSrc',
+                'vidjoy.pro': 'VidJoy',
+                'multiembed.mov': 'MultiEmbed',
+                'embed.su': 'Embed.su',
+                'vidsrc.me': 'VidSrc.me',
+                'player.autoembed.cc': 'AutoEmbed',
+                'vidsrc.win': 'VidSrc.win',
+                'vidsrc.to': 'VidSrc.to',
+                'vidsrc.xyz': 'VidSrc.xyz',
+                'embedsoap.com': 'EmbedSoap',
+                'moviesapi.club': 'MoviesAPI',
+                'dbgo.fun': 'DBGO',
+                'flixhq.to': 'FlixHQ',
+                'gomovies.sx': 'GoMovies',
+                'showbox.media': 'ShowBox',
+                'primewire.mx': 'PrimeWire',
+                'hdtoday.tv': 'HDToday',
+                'vidcloud.to': 'VidCloud',
+                'streamwish.to': 'StreamWish',
+                'doodstream.com': 'DoodStream',
+                'streamtape.com': 'StreamTape',
+                'mixdrop.co': 'MixDrop',
+                'player.videasy.net': 'VidEasy',
+                'vidfast.pro': 'VidFast',
+                'godriveplayer.com': 'GoDrivePlayer',
+                '2embed.cc': '2Embed',
+                'vidlink.pro': 'VidLink',
+                'filelions.to': 'FileLions',
+                'streamlare.com': 'StreamLare',
+                'streamhub.to': 'StreamHub',
+                'warezcdn.com': 'WarezCDN',
+                'fembed.com': 'Fembed',
+                'streamzz.to': 'Streamzz',
+                'supervideo.tv': 'SuperVideo'
+            };
+
+            let serverNameFound = false;
+            for (const domain in domainMapping) {
+                if (lowerUrl.includes(domain)) {
+                    nameParts.push(domainMapping[domain]);
+                    serverNameFound = true;
+                    break;
+                }
+            }
+
+            if (!serverNameFound) {
+                try {
+                    const urlObject = new URL(url);
+                    let hostname = urlObject.hostname;
+                    if (hostname.startsWith('www.')) {
+                        hostname = hostname.substring(4);
+                    }
+                    // Capitalize first letter and remove TLD
+                    let baseName = hostname.split('.')[0];
+                    baseName = baseName.charAt(0).toUpperCase() + baseName.slice(1);
+                    nameParts.push(baseName);
+                } catch (e) {
+                    // fallback for invalid urls
+                    nameParts.push('Server');
+                }
+            }
+
+
+            // 2. Detect Resolution
+            const resolutionKeywords = ['4k', '2160p', '1080p', '720p', '480p', '360p'];
+            for (const res of resolutionKeywords) {
+                if (lowerUrl.includes(res)) {
+                    nameParts.push(res.toUpperCase());
+                    break; // Assume only one resolution is specified
+                }
+            }
+
+            // 3. Detect Quality
+            const qualityKeywords = {
+                'bluray': 'BluRay',
+                'web-dl': 'WEB-DL',
+                'webdl': 'WEB-DL',
+                'webrip': 'WebRip',
+                'hdrip': 'HDRip',
+                'hdtv': 'HDTV',
+                'hd': 'HD'
+            };
+            for (const key in qualityKeywords) {
+                if (lowerUrl.includes(key)) {
+                    nameParts.push(qualityKeywords[key]);
+                    break;
+                }
+            }
+
+            // 4. Detect File Type
+            const fileTypeKeywords = ['mkv', 'mp4', 'avi'];
+             for (const type of fileTypeKeywords) {
+                if (lowerUrl.endsWith(`.${type}`)) {
+                    nameParts.push(type.toUpperCase());
+                    break;
+                }
+            }
+
+
+            return nameParts.join(' ');
+        }
+
         // Preview and management functions
         function updatePreview() {
             const filter = document.getElementById('preview-filter')?.value || 'all';
+            const searchTerm = document.getElementById('preview-search')?.value.toLowerCase() || '';
             const container = document.getElementById('content-preview');
             
             if (!container) return;
             
-            container.innerHTML = '';
-            
-            let items = [];
+            let allItems = [];
             
             // Collect items from all categories based on filter
             currentData.Categories.forEach(category => {
@@ -5938,8 +6094,11 @@ Proceed with removal?`;
                     else if (category.MainCategory === "TV Series") itemType = 'series';
                     else if (category.MainCategory === "Live TV") itemType = 'live';
                     
-                    if (filter === 'all' || filter === itemType) {
-                        items.push({
+                    const typeMatch = (filter === 'all' || filter === itemType);
+                    const searchMatch = (entry.Title.toLowerCase().includes(searchTerm));
+
+                    if (typeMatch && searchMatch) {
+                        allItems.push({
                             ...entry,
                             type: itemType,
                             category: category.MainCategory,
@@ -5953,8 +6112,18 @@ Proceed with removal?`;
                     }
                 });
             });
-            
-            items.forEach(item => {
+
+            const totalPages = Math.ceil(allItems.length / itemsPerPage);
+            currentPage = Math.max(1, Math.min(currentPage, totalPages));
+
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = startIndex + itemsPerPage;
+            const itemsToRender = allItems.slice(startIndex, endIndex);
+
+            container.innerHTML = '';
+            const fragment = document.createDocumentFragment();
+
+            itemsToRender.forEach(item => {
                 const div = document.createElement('div');
                 div.className = 'preview-item';
                 
@@ -5974,8 +6143,15 @@ Proceed with removal?`;
                     </div>
                 `;
                 
-                container.appendChild(div);
+                fragment.appendChild(div);
             });
+
+            container.appendChild(fragment);
+
+            // Update pagination controls
+            document.getElementById('page-info').textContent = `Page ${currentPage} of ${totalPages || 1}`;
+            document.getElementById('prev-page').disabled = currentPage === 1;
+            document.getElementById('next-page').disabled = currentPage === totalPages || totalPages === 0;
         }
 
         function editContent(title, category) {
@@ -6000,23 +6176,12 @@ Proceed with removal?`;
             
             // Show edit modal (simplified version)
             const modal = document.getElementById('edit-modal');
-            if (!modal) {
-                // Create modal if it doesn't exist
-                const modalHTML = `
-                    <div id="edit-modal" class="modal">
-                        <div class="modal-content">
-                            <span class="close" onclick="closeEditModal()">&times;</span>
-                            <h2>Edit Content</h2>
-                            <div id="edit-form"></div>
-                            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                                <button class="btn btn-primary" onclick="saveEdit()">Save Changes</button>
-                                <button class="btn btn-secondary" onclick="exportData()">💾 Export as Backup</button>
-                            </div>
-                        </div>
-                    </div>
-                `;
-                document.body.insertAdjacentHTML('beforeend', modalHTML);
-            }
+            const modalTitle = modal.querySelector('h2');
+            const saveButton = document.getElementById('modal-save-btn');
+
+            modalTitle.textContent = 'Edit Content';
+            saveButton.textContent = 'Save Changes';
+            saveButton.setAttribute('onclick', 'saveEdit()');
             
             const form = document.getElementById('edit-form');
             
@@ -6026,8 +6191,8 @@ Proceed with removal?`;
                 content.Servers.forEach((server, index) => {
                     serversHTML += `
                         <div class="server-item">
-                            <input type="text" placeholder="Server Name" class="edit-server-name" value="${server.name || ''}">
-                            <input type="url" placeholder="Video URL" class="edit-server-url" value="${server.url || ''}">
+                            <input type="text" placeholder="Server Name" class="edit-server-name js-server-name" value="${server.name || ''}">
+                            <input type="url" placeholder="Video URL" class="edit-server-url js-server-url" value="${server.url || ''}">
                             <button class="paste-btn" onclick="pasteFromClipboard(this)">📋 Paste</button>
                             <button class="btn btn-danger btn-small" onclick="removeServer(this)">Remove</button>
                         </div>
@@ -6036,8 +6201,8 @@ Proceed with removal?`;
             } else {
                 serversHTML = `
                     <div class="server-item">
-                        <input type="text" placeholder="Server Name" class="edit-server-name">
-                        <input type="url" placeholder="Video URL" class="edit-server-url">
+                        <input type="text" placeholder="Server Name" class="edit-server-name js-server-name">
+                        <input type="url" placeholder="Video URL" class="edit-server-url js-server-url">
                         <button class="paste-btn" onclick="pasteFromClipboard(this)">📋 Paste</button>
                         <button class="btn btn-danger btn-small" onclick="removeServer(this)">Remove</button>
                     </div>
@@ -6058,15 +6223,15 @@ Proceed with removal?`;
                                         ${episode.Servers && episode.Servers.length > 0 ? 
                                             episode.Servers.map(server => `
                                                 <div class="server-item">
-                                                    <input type="text" placeholder="Server Name" class="edit-episode-server-name" value="${server.name || ''}" data-season="${seasonIndex}" data-episode="${episodeIndex}">
-                                                    <input type="url" placeholder="Video URL" class="edit-episode-server-url" value="${server.url || ''}" data-season="${seasonIndex}" data-episode="${episodeIndex}">
+                                                    <input type="text" placeholder="Server Name" class="edit-episode-server-name js-server-name" value="${server.name || ''}" data-season="${seasonIndex}" data-episode="${episodeIndex}">
+                                                    <input type="url" placeholder="Video URL" class="edit-episode-server-url js-server-url" value="${server.url || ''}" data-season="${seasonIndex}" data-episode="${episodeIndex}">
                                                     <button class="paste-btn" onclick="pasteFromClipboard(this)">📋 Paste</button>
                                                     <button class="btn btn-danger btn-small" onclick="removeServer(this)">Remove</button>
                                                 </div>
                                             `).join('') : 
                                             `<div class="server-item">
-                                                <input type="text" placeholder="Server Name" class="edit-episode-server-name" data-season="${seasonIndex}" data-episode="${episodeIndex}">
-                                                <input type="url" placeholder="Video URL" class="edit-episode-server-url" data-season="${seasonIndex}" data-episode="${episodeIndex}">
+                                                <input type="text" placeholder="Server Name" class="edit-episode-server-name js-server-name" data-season="${seasonIndex}" data-episode="${episodeIndex}">
+                                                <input type="url" placeholder="Video URL" class="edit-episode-server-url js-server-url" data-season="${seasonIndex}" data-episode="${episodeIndex}">
                                                 <button class="paste-btn" onclick="pasteFromClipboard(this)">📋 Paste</button>
                                                 <button class="btn btn-danger btn-small" onclick="removeServer(this)">Remove</button>
                                             </div>`
@@ -6133,8 +6298,8 @@ Proceed with removal?`;
             const serverItem = document.createElement('div');
             serverItem.className = 'server-item';
             serverItem.innerHTML = `
-                <input type="text" placeholder="Server Name" class="edit-server-name">
-                <input type="url" placeholder="Video URL" class="edit-server-url">
+                <input type="text" placeholder="Server Name" class="edit-server-name js-server-name">
+                <input type="url" placeholder="Video URL" class="edit-server-url js-server-url">
                 <button class="paste-btn" onclick="pasteFromClipboard(this)">📋 Paste</button>
                 <button class="btn btn-danger btn-small" onclick="removeServer(this)">Remove</button>
             `;
@@ -6148,8 +6313,8 @@ Proceed with removal?`;
             const serverItem = document.createElement('div');
             serverItem.className = 'server-item';
             serverItem.innerHTML = `
-                <input type="text" placeholder="Server Name" class="edit-episode-server-name" data-season="${seasonIndex}" data-episode="${episodeIndex}">
-                <input type="url" placeholder="Video URL" class="edit-episode-server-url" data-season="${seasonIndex}" data-episode="${episodeIndex}">
+                <input type="text" placeholder="Server Name" class="edit-episode-server-name js-server-name" data-season="${seasonIndex}" data-episode="${episodeIndex}">
+                <input type="url" placeholder="Video URL" class="edit-episode-server-url js-server-url" data-season="${seasonIndex}" data-episode="${episodeIndex}">
                 <button class="paste-btn" onclick="pasteFromClipboard(this)">📋 Paste</button>
                 <button class="btn btn-danger btn-small" onclick="removeServer(this)">Remove</button>
             `;
@@ -6180,8 +6345,8 @@ Proceed with removal?`;
                         const serverInputs = document.querySelectorAll('#edit-servers .server-item');
                         const servers = [];
                         serverInputs.forEach(item => {
-                            const name = item.querySelector('.edit-server-name').value.trim();
-                            const url = item.querySelector('.edit-server-url').value.trim();
+                            const name = item.querySelector('.js-server-name').value.trim();
+                            const url = item.querySelector('.js-server-url').value.trim();
                             if (name && url) {
                                 servers.push({ name, url });
                             }
@@ -6193,12 +6358,11 @@ Proceed with removal?`;
                             entry.Seasons.forEach((season, seasonIndex) => {
                                 season.Episodes.forEach((episode, episodeIndex) => {
                                     const episodeServers = [];
-                                    const episodeServerInputs = document.querySelectorAll(`.edit-episode-server-name[data-season="${seasonIndex}"][data-episode="${episodeIndex}"]`);
+                                    const episodeServerItems = document.querySelectorAll(`#edit-seasons .season-group:nth-child(${seasonIndex + 1}) .episode-group:nth-child(${episodeIndex + 1}) .server-item`);
                                     
-                                    episodeServerInputs.forEach(input => {
-                                        const serverItem = input.closest('.server-item');
-                                        const name = input.value.trim();
-                                        const url = serverItem.querySelector('.edit-episode-server-url').value.trim();
+                                    episodeServerItems.forEach(item => {
+                                        const name = item.querySelector('.js-server-name').value.trim();
+                                        const url = item.querySelector('.js-server-url').value.trim();
                                         if (name && url) {
                                             episodeServers.push({ name, url });
                                         }
@@ -6262,31 +6426,26 @@ Proceed with removal?`;
             
             // Show quick add server modal
             const modal = document.getElementById('edit-modal');
-            if (!modal) {
-                const modalHTML = `
-                    <div id="edit-modal" class="modal">
-                        <div class="modal-content">
-                            <span class="close" onclick="closeEditModal()">&times;</span>
-                            <h2>Add Server to ${content.Title}</h2>
-                            <div id="edit-form"></div>
-                            <button class="btn btn-primary" onclick="saveQuickServer()">Add Server</button>
-                        </div>
-                    </div>
-                `;
-                document.body.insertAdjacentHTML('beforeend', modalHTML);
-            }
+            const modalTitle = modal.querySelector('h2');
+            const saveButton = document.getElementById('modal-save-btn');
+
+            modalTitle.textContent = `Add Server to ${content.Title}`;
+            saveButton.textContent = 'Add Server';
+            saveButton.setAttribute('onclick', 'saveQuickServer()');
             
             const form = document.getElementById('edit-form');
             form.innerHTML = `
-                <div class="form-group">
-                    <label>Server Name</label>
-                                            <input type="text" id="quick-server-name" placeholder="e.g., VidJoy 1080p">
-                </div>
-                <div class="form-group">
-                    <label>Server URL</label>
-                    <div style="display: flex; gap: 10px; align-items: center;">
-                        <input type="url" id="quick-server-url" placeholder="https://..." style="flex: 1;">
-                        <button class="paste-btn" onclick="pasteFromClipboard(this)">📋 Paste</button>
+                <div class="server-item" style="flex-direction: column; align-items: stretch; gap: 15px;">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label>Server Name</label>
+                        <input type="text" id="quick-server-name" class="js-server-name" placeholder="e.g., VidJoy 1080p">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label>Server URL</label>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <input type="url" id="quick-server-url" class="js-server-url" placeholder="https://..." style="flex: 1;">
+                            <button class="paste-btn" onclick="pasteFromClipboard(this)">📋 Paste</button>
+                        </div>
                     </div>
                 </div>
                 <input type="hidden" id="quick-content-title" value="${title}">
@@ -6299,8 +6458,8 @@ Proceed with removal?`;
         function saveQuickServer() {
             const title = document.getElementById('quick-content-title').value;
             const category = document.getElementById('quick-content-category').value;
-            const serverName = document.getElementById('quick-server-name').value.trim();
-            const serverUrl = document.getElementById('quick-server-url').value.trim();
+            const serverName = document.querySelector('#edit-form .js-server-name').value.trim();
+            const serverUrl = document.querySelector('#edit-form .js-server-url').value.trim();
             
             if (!serverName || !serverUrl) {
                 showStatus('warning', 'Please enter both server name and URL');
@@ -6348,31 +6507,26 @@ Proceed with removal?`;
             
             // Show quick add server modal for episode
             const modal = document.getElementById('edit-modal');
-            if (!modal) {
-                const modalHTML = `
-                    <div id="edit-modal" class="modal">
-                        <div class="modal-content">
-                            <span class="close" onclick="closeEditModal()">&times;</span>
-                            <h2>Add Server to Episode</h2>
-                            <div id="edit-form"></div>
-                            <button class="btn btn-primary" onclick="saveQuickEpisodeServer()">Add Server</button>
-                        </div>
-                    </div>
-                `;
-                document.body.insertAdjacentHTML('beforeend', modalHTML);
-            }
-            
+            const modalTitle = modal.querySelector('h2');
+            const saveButton = document.getElementById('modal-save-btn');
+
+            modalTitle.textContent = `Add Server to S${seasonIndex+1}E${episodeIndex+1}: ${episode.Title}`;
+            saveButton.textContent = 'Add Server';
+            saveButton.setAttribute('onclick', 'saveQuickEpisodeServer()');
+
             const form = document.getElementById('edit-form');
             form.innerHTML = `
-                <div class="form-group">
-                    <label>Server Name</label>
-                                            <input type="text" id="quick-episode-server-name" placeholder="e.g., VidJoy 1080p">
-                </div>
-                <div class="form-group">
-                    <label>Server URL</label>
-                    <div style="display: flex; gap: 10px; align-items: center;">
-                        <input type="url" id="quick-episode-server-url" placeholder="https://..." style="flex: 1;">
-                        <button class="paste-btn" onclick="pasteFromClipboard(this)">📋 Paste</button>
+                <div class="server-item" style="flex-direction: column; align-items: stretch; gap: 15px;">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label>Server Name</label>
+                        <input type="text" id="quick-episode-server-name" class="js-server-name" placeholder="e.g., VidJoy 1080p">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label>Server URL</label>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <input type="url" id="quick-episode-server-url" class="js-server-url" placeholder="https://..." style="flex: 1;">
+                            <button class="paste-btn" onclick="pasteFromClipboard(this)">📋 Paste</button>
+                        </div>
                     </div>
                 </div>
                 <input type="hidden" id="quick-episode-title" value="${title}">
@@ -6387,8 +6541,8 @@ Proceed with removal?`;
             const title = document.getElementById('quick-episode-title').value;
             const seasonIndex = parseInt(document.getElementById('quick-episode-season').value);
             const episodeIndex = parseInt(document.getElementById('quick-episode-episode').value);
-            const serverName = document.getElementById('quick-episode-server-name').value.trim();
-            const serverUrl = document.getElementById('quick-episode-server-url').value.trim();
+            const serverName = document.querySelector('#edit-form .js-server-name').value.trim();
+            const serverUrl = document.querySelector('#edit-form .js-server-url').value.trim();
             
             if (!serverName || !serverUrl) {
                 showStatus('warning', 'Please enter both server name and URL');
